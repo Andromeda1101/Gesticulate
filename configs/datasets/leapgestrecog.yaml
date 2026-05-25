@@ -1,0 +1,24 @@
+dataset_name: leapgestrecog
+root_path: data/raw/leapgestrecog
+description: LeapGestRecog static hand-gesture dataset
+
+label_vocabulary:
+  - Palm
+  - Fist
+  - Thumb_Up
+  - Peace
+
+split_strategy:
+  method: stratified
+  train_ratio: 0.7
+  val_ratio: 0.15
+  test_ratio: 0.15
+  seed: 42
+
+sampling:
+  max_samples_per_class: null
+  shuffle: true
+
+capture_context:
+  source: static_images
+  resolution: null

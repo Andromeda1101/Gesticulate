@@ -1,0 +1,27 @@
+camera:
+  index: 0
+  width: 640
+  height: 480
+  fps_target: 30
+
+inference:
+  champion_model_path: null
+  feature_family: hybrid
+  confidence_threshold: 0.6
+
+smoothing:
+  window_size: 5
+  min_consensus_ratio: 0.6
+
+debounce:
+  ms_between_actions: 300
+
+gesture_mapping:
+  Palm: space
+  Fist: enter
+  Thumb_Up: up
+  Peace: down
+
+monitoring:
+  log_fps_interval_sec: 5
+  log_latency: true

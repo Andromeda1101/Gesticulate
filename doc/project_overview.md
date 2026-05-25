@@ -47,12 +47,6 @@ Gesticulate/
     tables/
     summaries/
   scripts/
-    phase0/
-    phase1/
-    phase2/
-    phase3/
-    phase4/
-    phase5/
   src/
     common/
     data/

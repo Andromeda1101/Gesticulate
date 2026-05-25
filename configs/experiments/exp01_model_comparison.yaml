@@ -1,0 +1,29 @@
+experiment_id: EXP-01
+name: model_comparison
+description: Algorithm comparison on a common feature and split protocol
+
+datasets:
+  train: configs/datasets/leapgestrecog.yaml
+  eval: configs/datasets/leapgestrecog.yaml
+
+features:
+  config: configs/features/default.yaml
+  feature_family: hybrid
+
+models:
+  config: configs/models/baselines.yaml
+  algorithms:
+    - logistic_regression
+    - random_forest
+    - svm_rbf
+
+metrics:
+  primary: accuracy
+  secondary:
+    - f1_macro
+    - confusion_matrix
+
+outputs:
+  models_dir: artifacts/models
+  metrics_dir: artifacts/metrics
+  reports_dir: reports/tables

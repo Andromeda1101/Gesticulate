@@ -1,0 +1,29 @@
+experiment_id: EXP-04
+name: realtime_deployment
+description: Real-time deployment evaluation using the champion exported model
+
+datasets:
+  train: null
+  eval: null
+
+features:
+  config: configs/features/default.yaml
+  feature_family: hybrid
+
+models:
+  champion_artifact: artifacts/models/EXP-01_champion_hybrid.joblib
+  fallback_algorithm: random_forest
+
+runtime:
+  config: configs/runtime/default.yaml
+
+metrics:
+  primary: end_to_end_latency_ms
+  secondary:
+    - fps
+    - action_success_rate
+
+outputs:
+  runtime_dir: artifacts/runtime
+  metrics_dir: artifacts/metrics
+  reports_dir: reports/summaries

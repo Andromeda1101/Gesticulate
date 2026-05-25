@@ -1,0 +1,28 @@
+experiment_id: EXP-03
+name: robustness_cross_dataset
+description: Train on LeapGestRecog and evaluate on HaGRID subset
+
+datasets:
+  train: configs/datasets/leapgestrecog.yaml
+  eval: configs/datasets/hagrid_subset.yaml
+
+features:
+  config: configs/features/default.yaml
+  feature_family: hybrid
+
+models:
+  config: configs/models/baselines.yaml
+  algorithms:
+    - random_forest
+    - svm_rbf
+
+metrics:
+  primary: accuracy
+  secondary:
+    - f1_macro
+    - per_class_recall
+
+outputs:
+  models_dir: artifacts/models
+  metrics_dir: artifacts/metrics
+  reports_dir: reports/tables

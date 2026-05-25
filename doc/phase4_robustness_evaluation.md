@@ -63,7 +63,7 @@
   4. Export a concise summary for decision-making.
 - **Dependent libraries**: `pandas`, `matplotlib`, `seaborn`
 
-### 5. `scripts/phase4/run_robustness_eval.py`
+### 5. `scripts/run_robustness_eval.py`
 - **Function**: Main CLI entrypoint for `EXP-03`.
 - **Suggested CLI arguments**:
   - `--model-artifact artifacts/models/EXP-01_svm_hybrid.joblib`
@@ -77,7 +77,7 @@
   4. Compute domain-shift metrics.
   5. Export metrics and report bundle.
 
-### 6. `scripts/phase4/export_failure_gallery.py`
+### 6. `scripts/export_failure_gallery.py`
 - **Function**: Assemble a review set of OOD misclassifications for qualitative analysis.
 - **Input/Output**:
   - Input: prediction table with image paths, truth labels, predicted labels, and context metadata
@@ -142,11 +142,11 @@ ChampionModel + InDomainTestFeatures + OODFeatures
 
 ### Execution Steps and Example Commands
 1. Evaluate the champion model on in-domain and OOD features:
-   - `python scripts/phase4/run_robustness_eval.py --model-artifact artifacts/models/EXP-01_svm_hybrid.joblib --in-domain-features artifacts/features/leapgestrecog_hybrid_v1.parquet --ood-features artifacts/features/hagrid_subset_hybrid_v1.parquet --config configs/experiments/exp03_robustness.yaml`
+   - `python scripts/run_robustness_eval.py --model-artifact artifacts/models/EXP-01_svm_hybrid.joblib --in-domain-features artifacts/features/leapgestrecog_hybrid_v1.parquet --ood-features artifacts/features/hagrid_subset_hybrid_v1.parquet --config configs/experiments/exp03_robustness.yaml`
 2. Export a failure-case index:
-   - `python scripts/phase4/export_failure_gallery.py --predictions artifacts/metrics/EXP-03_predictions.csv --output reports/summaries/exp03_failure_gallery.md`
+   - `python scripts/export_failure_gallery.py --predictions artifacts/metrics/EXP-03_predictions.csv --output reports/summaries/exp03_failure_gallery.md`
 3. Export the domain-shift summary:
-   - `python scripts/phase4/export_phase4_report.py --metrics artifacts/metrics/EXP-03_<run_id>.json --output reports/summaries/phase4_robustness_summary.md`
+   - `python scripts/export_phase4_report.py --metrics artifacts/metrics/EXP-03_<run_id>.json --output reports/summaries/phase4_robustness_summary.md`
 
 ### Expected Output or Result Example
 - `artifacts/metrics/EXP-03_<run_id>.json`

@@ -1,0 +1,29 @@
+experiment_id: EXP-02
+name: feature_ablation
+description: Compare keypoints-only, HOG-only, and hybrid feature families
+
+datasets:
+  train: configs/datasets/leapgestrecog.yaml
+  eval: configs/datasets/leapgestrecog.yaml
+
+features:
+  config: configs/features/default.yaml
+  feature_families:
+    - keypoints_only
+    - hog_only
+    - hybrid
+
+models:
+  config: configs/models/baselines.yaml
+  algorithms:
+    - random_forest
+
+metrics:
+  primary: accuracy
+  secondary:
+    - f1_macro
+
+outputs:
+  models_dir: artifacts/models
+  metrics_dir: artifacts/metrics
+  reports_dir: reports/tables

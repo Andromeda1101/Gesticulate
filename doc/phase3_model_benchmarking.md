@@ -102,7 +102,7 @@
   - training summary metadata
 - **Dependent libraries**: `joblib`, `json`
 
-### 8. `scripts/phase3/run_experiment.py`
+### 8. `scripts/run_experiment.py`
 - **Function**: Generic experiment runner for `EXP-01` and `EXP-02`.
 - **Suggested CLI arguments**:
   - `--experiment-id EXP-01`
@@ -116,7 +116,7 @@
   4. Train and evaluate.
   5. Save model and metrics artifacts.
 
-### 9. `scripts/phase3/run_ablation_suite.py`
+### 9. `scripts/run_ablation_suite.py`
 - **Function**: Launch the feature-family comparison study for `EXP-02`.
 - **Feature families to compare**:
   - keypoints or geometric only
@@ -181,13 +181,13 @@ FeatureStore + SplitFiles + ExperimentConfig
 
 ### Execution Steps and Example Commands
 1. Run a single benchmark configuration:
-   - `python scripts/phase3/run_experiment.py --experiment-id EXP-01 --feature-family geometric --algorithm svm --config configs/experiments/exp01_model_comparison.yaml`
+   - `python scripts/run_experiment.py --experiment-id EXP-01 --feature-family geometric --algorithm svm --config configs/experiments/exp01_model_comparison.yaml`
 2. Run a full algorithm sweep:
-   - `python scripts/phase3/run_benchmark_suite.py --experiment-id EXP-01 --feature-family geometric --algorithms knn svm random_forest logistic_regression mlp`
+   - `python scripts/run_benchmark_suite.py --experiment-id EXP-01 --feature-family geometric --algorithms knn svm random_forest logistic_regression mlp`
 3. Run feature ablation:
-   - `python scripts/phase3/run_ablation_suite.py --experiment-id EXP-02 --algorithms svm random_forest mlp`
+   - `python scripts/run_ablation_suite.py --experiment-id EXP-02 --algorithms svm random_forest mlp`
 4. Export leaderboard summary:
-   - `python scripts/phase3/export_phase3_report.py --input-dir artifacts/metrics --output reports/summaries/phase3_benchmark_summary.md`
+   - `python scripts/export_phase3_report.py --input-dir artifacts/metrics --output reports/summaries/phase3_benchmark_summary.md`
 
 ### Expected Output or Result Example
 - `artifacts/models/EXP-01_svm_geometric.joblib`

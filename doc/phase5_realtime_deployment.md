@@ -97,7 +97,7 @@
   - frame quality flags
 - **Dependent libraries**: `json`, `csv`
 
-### 8. `scripts/phase5/run_realtime_demo.py`
+### 8. `scripts/run_realtime_demo.py`
 - **Function**: Main interactive runtime entrypoint.
 - **Suggested CLI arguments**:
   - `--model artifacts/models/EXP-01_svm_hybrid.joblib`
@@ -111,7 +111,7 @@
   4. Track telemetry.
   5. Save a session summary on exit.
 
-### 9. `scripts/phase5/benchmark_runtime.py`
+### 9. `scripts/benchmark_runtime.py`
 - **Function**: Run a controlled runtime benchmark without enabling real keyboard events by default.
 - **Suggested CLI arguments**:
   - `--dry-run`
@@ -173,11 +173,11 @@ CameraFrame -> RuntimePreprocess -> FeatureVector -> ModelRunner -> GestureFilte
 
 ### Execution Steps and Example Commands
 1. Launch the runtime in safe dry-run mode:
-   - `python scripts/phase5/run_realtime_demo.py --model artifacts/models/EXP-01_svm_hybrid.joblib --runtime-config configs/runtime/default.yaml --camera-index 0 --dry-run --show-overlay`
+   - `python scripts/run_realtime_demo.py --model artifacts/models/EXP-01_svm_hybrid.joblib --runtime-config configs/runtime/default.yaml --camera-index 0 --dry-run --show-overlay`
 2. Run a timed runtime benchmark:
-   - `python scripts/phase5/benchmark_runtime.py --model artifacts/models/EXP-01_svm_hybrid.joblib --runtime-config configs/runtime/default.yaml --duration-seconds 60 --dry-run --output artifacts/runtime/runtime_eval_001.json`
+   - `python scripts/benchmark_runtime.py --model artifacts/models/EXP-01_svm_hybrid.joblib --runtime-config configs/runtime/default.yaml --duration-seconds 60 --dry-run --output artifacts/runtime/runtime_eval_001.json`
 3. Run the live keyboard-control mode after validation:
-   - `python scripts/phase5/run_realtime_demo.py --model artifacts/models/EXP-01_svm_hybrid.joblib --runtime-config configs/runtime/default.yaml --camera-index 0 --enable-key-dispatch`
+   - `python scripts/run_realtime_demo.py --model artifacts/models/EXP-01_svm_hybrid.joblib --runtime-config configs/runtime/default.yaml --camera-index 0 --enable-key-dispatch`
 
 ### Expected Output or Result Example
 - Live overlay window showing predicted gesture and confidence

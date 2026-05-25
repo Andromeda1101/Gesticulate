@@ -95,7 +95,7 @@
   - overlap between training label space and HaGRID subset
 - **Dependent libraries**: `pandas`, `json`
 
-### 7. `scripts/phase1/build_dataset_manifests.py`
+### 7. `scripts/build_dataset_manifests.py`
 - **Function**: CLI entrypoint for indexing raw data and producing manifests.
 - **Suggested CLI arguments**:
   - `--dataset leapgestrecog`
@@ -108,7 +108,7 @@
   4. Normalize labels.
   5. Save manifest and summary report.
 
-### 8. `scripts/phase1/generate_splits.py`
+### 8. `scripts/generate_splits.py`
 - **Function**: Create split and fold artifacts from the primary dataset manifest.
 - **Suggested CLI arguments**:
   - `--manifest data/interim/leapgestrecog_manifest.parquet`
@@ -162,13 +162,13 @@ RawImages -> DatasetAdapter -> CanonicalManifest -> SplitGenerator -> SplitFiles
 
 ### Execution Steps and Example Commands
 1. Build the LeapGestRecog manifest:
-   - `python scripts/phase1/build_dataset_manifests.py --dataset leapgestrecog --config configs/datasets/leapgestrecog.yaml --output data/interim/leapgestrecog_manifest.parquet`
+   - `python scripts/build_dataset_manifests.py --dataset leapgestrecog --config configs/datasets/leapgestrecog.yaml --output data/interim/leapgestrecog_manifest.parquet`
 2. Build the HaGRID subset manifest:
-   - `python scripts/phase1/build_dataset_manifests.py --dataset hagrid_subset --config configs/datasets/hagrid_subset.yaml --output data/interim/hagrid_subset_manifest.parquet`
+   - `python scripts/build_dataset_manifests.py --dataset hagrid_subset --config configs/datasets/hagrid_subset.yaml --output data/interim/hagrid_subset_manifest.parquet`
 3. Generate primary splits and folds:
-   - `python scripts/phase1/generate_splits.py --manifest data/interim/leapgestrecog_manifest.parquet --seed 42 --folds 5`
+   - `python scripts/generate_splits.py --manifest data/interim/leapgestrecog_manifest.parquet --seed 42 --folds 5`
 4. Export a dataset summary:
-   - `python scripts/phase1/export_dataset_report.py --manifest data/interim/leapgestrecog_manifest.parquet --output reports/summaries/leapgestrecog_summary.json`
+   - `python scripts/export_dataset_report.py --manifest data/interim/leapgestrecog_manifest.parquet --output reports/summaries/leapgestrecog_summary.json`
 
 ### Expected Output or Result Example
 - `data/interim/leapgestrecog_manifest.parquet`

@@ -91,7 +91,7 @@
   - runtime key mapping and debounce settings
 - **Dependent libraries**: none at creation time
 
-### 6. `scripts/phase0/bootstrap_project.py`
+### 6. `scripts/bootstrap_project.py`
 - **Function**: Create the expected directory tree and placeholder config files.
 - **Suggested interface**:
   - CLI entrypoint with arguments such as `--project-root`, `--force`, `--with-placeholders`

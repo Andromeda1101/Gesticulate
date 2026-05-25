@@ -89,7 +89,7 @@
   3. Flag samples needing exclusion or review.
 - **Dependent libraries**: `pandas`
 
-### 7. `scripts/phase2/extract_features.py`
+### 7. `scripts/extract_features.py`
 - **Function**: Main CLI entrypoint for batch feature extraction.
 - **Suggested CLI arguments**:
   - `--manifest data/interim/leapgestrecog_manifest.parquet`
@@ -103,7 +103,7 @@
   4. Persist feature matrix and manifest.
   5. Save extraction summary.
 
-### 8. `scripts/phase2/build_hybrid_features.py`
+### 8. `scripts/build_hybrid_features.py`
 - **Function**: Join previously generated feature families into a hybrid store.
 - **Suggested CLI arguments**:
   - `--keypoint-features ...`
@@ -166,13 +166,13 @@ SampleManifest -> CropAndHOG -------------------------/
 
 ### Execution Steps and Example Commands
 1. Extract keypoint and geometric features:
-   - `python scripts/phase2/extract_features.py --manifest data/interim/leapgestrecog_manifest.parquet --feature-family geometric --config configs/features/default.yaml --output artifacts/features/leapgestrecog_geometric_v1.parquet`
+   - `python scripts/extract_features.py --manifest data/interim/leapgestrecog_manifest.parquet --feature-family geometric --config configs/features/default.yaml --output artifacts/features/leapgestrecog_geometric_v1.parquet`
 2. Extract HOG features:
-   - `python scripts/phase2/extract_features.py --manifest data/interim/leapgestrecog_manifest.parquet --feature-family hog --config configs/features/default.yaml --output artifacts/features/leapgestrecog_hog_v1.parquet`
+   - `python scripts/extract_features.py --manifest data/interim/leapgestrecog_manifest.parquet --feature-family hog --config configs/features/default.yaml --output artifacts/features/leapgestrecog_hog_v1.parquet`
 3. Build hybrid features:
-   - `python scripts/phase2/build_hybrid_features.py --keypoint-features artifacts/features/leapgestrecog_geometric_v1.parquet --hog-features artifacts/features/leapgestrecog_hog_v1.parquet --output artifacts/features/leapgestrecog_hybrid_v1.parquet`
+   - `python scripts/build_hybrid_features.py --keypoint-features artifacts/features/leapgestrecog_geometric_v1.parquet --hog-features artifacts/features/leapgestrecog_hog_v1.parquet --output artifacts/features/leapgestrecog_hybrid_v1.parquet`
 4. Export quality summary:
-   - `python scripts/phase2/export_feature_report.py --feature-manifest artifacts/features/leapgestrecog_geometric_v1_manifest.json --output reports/summaries/feature_report_geometric_v1.json`
+   - `python scripts/export_feature_report.py --feature-manifest artifacts/features/leapgestrecog_geometric_v1_manifest.json --output reports/summaries/feature_report_geometric_v1.json`
 
 ### Expected Output or Result Example
 - `artifacts/features/leapgestrecog_geometric_v1.parquet`
