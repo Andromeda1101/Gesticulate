@@ -1,12 +1,19 @@
 dataset_name: leapgestrecog
 root_path: data/raw/leapgestrecog
-description: LeapGestRecog static hand-gesture dataset
+description: LeapGestRecog static hand-gesture dataset (10 gesture classes)
 
+# Reference vocabulary for reports; does not filter samples (see label_filter).
 label_vocabulary:
   - Palm
+  - L
   - Fist
-  - Thumb_Up
-  - Peace
+  - Fist_Moved
+  - Thumb
+  - Index
+  - OK
+  - Palm_Moved
+  - C
+  - Down
 
 split_strategy:
   method: stratified
@@ -18,6 +25,18 @@ split_strategy:
 sampling:
   max_samples_per_class: null
   shuffle: true
+
+label_aliases:
+  "01_palm": Palm
+  "02_l": L
+  "03_fist": Fist
+  "04_fist_moved": Fist_Moved
+  "05_thumb": Thumb
+  "06_index": Index
+  "07_ok": OK
+  "08_palm_moved": Palm_Moved
+  "09_c": C
+  "10_down": Down
 
 capture_context:
   source: static_images

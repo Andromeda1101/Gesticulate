@@ -1,12 +1,22 @@
 dataset_name: hagrid_subset
 root_path: data/raw/hagrid
-description: HaGRID subset for out-of-distribution robustness evaluation
+description: HaGRID subset for OOD evaluation; labels aligned to LeapGestRecog where applicable
 
+# Align HaGRID class names to LeapGestRecog canonical names (see label_mapper.py).
+align_to: leapgestrecog
+
+# Reference overlap vocabulary (LeapGestRecog); does not drop other HaGRID classes.
 label_vocabulary:
   - Palm
+  - L
   - Fist
-  - Thumb_Up
-  - Peace
+  - Fist_Moved
+  - Thumb
+  - Index
+  - OK
+  - Palm_Moved
+  - C
+  - Down
 
 split_strategy:
   method: fixed_eval
@@ -18,6 +28,18 @@ split_strategy:
 sampling:
   max_samples_per_class: 500
   shuffle: false
+
+# HaGRID-native names -> LeapGestRecog canonical names (additional overrides)
+label_aliases:
+  palm: Palm
+  fist: Fist
+  like: Thumb
+  ok: OK
+  one: Index
+  rock: C
+  two_up: Thumb
+  two_up_inverted: Thumb
+  stop: Fist_Moved
 
 capture_context:
   source: in_the_wild
