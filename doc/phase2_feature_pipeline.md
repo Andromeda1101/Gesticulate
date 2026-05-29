@@ -92,10 +92,10 @@
 ### 7. `scripts/extract_features.py`
 - **Function**: Main CLI entrypoint for batch feature extraction.
 - **Suggested CLI arguments**:
-  - `--manifest data/interim/leapgestrecog_manifest.parquet`
+  - `--manifest data/interim/hagrid_subset_manifest.parquet`
   - `--feature-family keypoints`
   - `--config configs/features/default.yaml`
-  - `--output artifacts/features/leapgestrecog_keypoints_v1.parquet`
+  - `--output artifacts/features/hagrid_subset_keypoints_v1.parquet`
 - **Core logic**:
   1. Load sample manifest.
   2. Iterate through images.
@@ -108,7 +108,7 @@
 - **Suggested CLI arguments**:
   - `--keypoint-features ...`
   - `--hog-features ...`
-  - `--output artifacts/features/leapgestrecog_hybrid_v1.parquet`
+  - `--output artifacts/features/hagrid_subset_hybrid_v1.parquet`
 - **Core logic**:
   1. Align by `sample_id`.
   2. Validate matching label assignments.
@@ -165,19 +165,21 @@ SampleManifest -> CropAndHOG -------------------------/
   - `pip install opencv-python mediapipe numpy pandas scikit-image pyarrow`
 
 ### Execution Steps and Example Commands
-1. Extract keypoint and geometric features:
-   - `python scripts/extract_features.py --manifest data/interim/leapgestrecog_manifest.parquet --feature-family geometric --config configs/features/default.yaml --output artifacts/features/leapgestrecog_geometric_v1.parquet`
+1. Extract keypoint and geometric features on the primary (HaGRID) manifest:
+   - `python scripts/extract_features.py --manifest data/interim/hagrid_subset_manifest.parquet --feature-family geometric --config configs/features/default.yaml --output artifacts/features/hagrid_subset_geometric_v1.parquet`
 2. Extract HOG features:
-   - `python scripts/extract_features.py --manifest data/interim/leapgestrecog_manifest.parquet --feature-family hog --config configs/features/default.yaml --output artifacts/features/leapgestrecog_hog_v1.parquet`
+   - `python scripts/extract_features.py --manifest data/interim/hagrid_subset_manifest.parquet --feature-family hog --config configs/features/default.yaml --output artifacts/features/hagrid_subset_hog_v1.parquet`
 3. Build hybrid features:
-   - `python scripts/build_hybrid_features.py --keypoint-features artifacts/features/leapgestrecog_geometric_v1.parquet --hog-features artifacts/features/leapgestrecog_hog_v1.parquet --output artifacts/features/leapgestrecog_hybrid_v1.parquet`
+   - `python scripts/build_hybrid_features.py --keypoint-features artifacts/features/hagrid_subset_geometric_v1.parquet --hog-features artifacts/features/hagrid_subset_hog_v1.parquet --output artifacts/features/hagrid_subset_hybrid_v1.parquet`
 4. Export quality summary:
-   - `python scripts/export_feature_report.py --feature-manifest artifacts/features/leapgestrecog_geometric_v1_manifest.json --output reports/summaries/feature_report_geometric_v1.json`
+   - `python scripts/export_feature_report.py --feature-manifest artifacts/features/hagrid_subset_geometric_v1_manifest.json --output reports/summaries/feature_report_geometric_v1.json`
+
+For EXP-03 (OOD), repeat extraction using `data/interim/leapgestrecog_manifest.parquet` and `leapgestrecog_*` artifact prefixes.
 
 ### Expected Output or Result Example
-- `artifacts/features/leapgestrecog_geometric_v1.parquet`
-- `artifacts/features/leapgestrecog_hog_v1.parquet`
-- `artifacts/features/leapgestrecog_hybrid_v1.parquet`
+- `artifacts/features/hagrid_subset_geometric_v1.parquet`
+- `artifacts/features/hagrid_subset_hog_v1.parquet`
+- `artifacts/features/hagrid_subset_hybrid_v1.parquet`
 - Matching manifest JSON files with feature dimensions and config hashes
 - Quality report summarizing detection success rate and excluded samples
 

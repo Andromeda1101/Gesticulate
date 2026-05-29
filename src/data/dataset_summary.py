@@ -106,6 +106,58 @@ def save_manifest(samples: list[dict[str, Any]], output_path: str | Path) -> Pat
     return path
 
 
+def iter_manifest_batches(
+    manifest_path: str | Path,
+    batch_size: int,
+):
+    """
+    Yield manifest rows in fixed-size batches without loading the full table.
+
+    Falls back to slicing an in-memory manifest for non-Parquet inputs.
+    """
+    if batch_size <= 0:
+        raise ValueError(f"batch_size must be positive, got {batch_size}")
+
+    path = Path(manifest_path)
+    if not path.is_file():
+        raise FileNotFoundError(f"Manifest not found: {path}")
+
+    if path.suffix.lower() == ".parquet":
+        try:
+            import pyarrow.parquet as pq
+        except ImportError:
+            records = load_manifest(path)
+            for start in range(0, len(records), batch_size):
+                yield records[start : start + batch_size]
+            return
+
+        parquet_file = pq.ParquetFile(path)
+        for batch in parquet_file.iter_batches(batch_size=batch_size):
+            yield batch.to_pandas().to_dict(orient="records")
+        return
+
+    records = load_manifest(path)
+    for start in range(0, len(records), batch_size):
+        yield records[start : start + batch_size]
+
+
+def count_manifest_rows(manifest_path: str | Path) -> int:
+    """Return row count without loading all manifest columns into memory."""
+    path = Path(manifest_path)
+    if not path.is_file():
+        raise FileNotFoundError(f"Manifest not found: {path}")
+
+    if path.suffix.lower() == ".parquet":
+        try:
+            import pyarrow.parquet as pq
+
+            return int(pq.ParquetFile(path).metadata.num_rows)
+        except ImportError:
+            return len(load_manifest(path))
+
+    return len(load_manifest(path))
+
+
 def load_manifest(manifest_path: str | Path) -> list[dict[str, Any]]:
     path = Path(manifest_path)
     if not path.is_file():

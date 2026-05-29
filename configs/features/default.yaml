@@ -1,12 +1,19 @@
 feature_version: v1
+
 feature_families:
   keypoints_only:
     enabled: true
     mediapipe:
+      model_path: data/models/hand_landmarker.task
       static_image_mode: true
       max_num_hands: 1
-      min_detection_confidence: 0.5
-      min_tracking_confidence: 0.5
+      # Slightly lower threshold helps near-infrared LeapGestRecog (OOD) frames.
+      min_detection_confidence: 0.3
+      min_tracking_confidence: 0.3
+      preprocessing:
+        crop_region: none
+        apply_clahe: false
+        scale: 1.0
     geometric:
       normalize_to_wrist: true
       include_angles: true
@@ -18,11 +25,21 @@ feature_families:
       cells_per_block: [2, 2]
       block_norm: L2-Hys
       transform_sqrt: true
+      crop_size: [64, 64]
+      crop_padding: 0.15
   hybrid:
     enabled: true
     concat_order:
       - keypoints_only
       - hog_only
+
+extraction:
+  # null = auto (cpu_count - 1). Set to 1 for serial extraction.
+  num_workers: null
+  chunksize: null
+  # Manifest rows per extract-and-flush cycle; keeps peak RAM bounded on large datasets.
+  # Set to 0 or pass --batch-size 0 to load the full manifest into memory (legacy).
+  batch_size: 1000
 
 persistence:
   format: parquet
@@ -30,4 +47,8 @@ persistence:
 
 quality_flags:
   reject_low_confidence_landmarks: true
+  min_detection_confidence: 0.5
   min_visible_landmarks: 15
+  # Per-class alerts in *_quality.json (set null to disable a check).
+  min_samples_per_class: 1000
+  min_class_success_rate: 0.5

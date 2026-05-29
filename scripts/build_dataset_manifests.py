@@ -59,19 +59,20 @@ def main() -> int:
     samples = index_dataset(config)
 
     reference = config.get("label_vocabulary") or []
-    align_to_leap = config.get("align_to") == "leapgestrecog"
+    align_to = config.get("align_to")
+    align_to_canonical = align_to in ("canonical", "leapgestrecog")
     samples = apply_label_normalization(
         samples,
         args.dataset,
         label_aliases=config.get("label_aliases"),
         canonical_labels=reference or None,
-        align_to_leapgestrecog=align_to_leap,
+        align_to_canonical=align_to_canonical,
     )
 
     coverage = validate_label_coverage(samples, reference or None)
     if coverage.get("outside_reference"):
         logger.info(
-            "Labels outside LeapGestRecog reference (retained): %s",
+            "Labels outside canonical reference (retained): %s",
             coverage["outside_reference"],
         )
 

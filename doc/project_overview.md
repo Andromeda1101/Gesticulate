@@ -6,7 +6,7 @@ This document defines the shared architecture, repository conventions, experimen
 ## Research Objectives
 - Build a webcam-based gesture recognition pipeline for keyboard control.
 - Compare multiple classical and neural classifiers on a consistent feature stack.
-- Evaluate generalization from a clean static dataset to a more realistic out-of-distribution dataset.
+- Evaluate generalization from an in-the-wild primary dataset to a clean static out-of-distribution dataset.
 - Deploy the best-performing model in a real-time inference loop with gesture-to-key mapping and latency instrumentation.
 
 ## Phase Sequence
@@ -67,12 +67,18 @@ Gesticulate/
     phase5_realtime_deployment.md
 ```
 
+## Documentation and Runbooks
+- **将必要指令流程写入 README**：所有可执行的端到端流程（环境准备、数据索引、划分、特征提取、实验与评估）必须在仓库根目录的 [`README.md`](../README.md) 中维护一份可复制的命令清单，作为操作入口。
+- Phase 文档（`doc/phase*.md`）保留模块设计、接口约定与阶段验收标准；与运行相关的示例命令以 README 为准，phase 文档可引用 README 中的对应章节，避免两处命令长期不一致。
+- 新增或变更 CLI 脚本时，同步更新 README 中的 **End-to-end workflow** 小节，并标明该步骤所属阶段、输入/输出路径及对应 `EXP-*` 实验（如适用）。
+
 ## Core Design Principles
 - Keep data processing, feature extraction, model training, evaluation, and runtime inference as separate layers.
 - Prefer configuration-driven experiment execution over hard-coded dataset paths or model parameters.
 - Treat every experiment output as a reproducible artifact with machine-readable metadata.
 - Make offline feature generation compatible with both classical models and future deep-sequence extensions.
 - Keep the real-time runtime decoupled from training code; it should consume exported artifacts only.
+- Use a process pool to accelerate work wherever batch processing may become slow or congested. Use tqdm process bar for noticing if necessary. Offline stages that iterate over tens of thousands of samples should parallelize across CPU cores instead of running strictly serial loops in the parent process. Each worker must own its own heavy state (for example, a MediaPipe Hand Landmarker instance) and must be initialized under a `spawn` multiprocessing context so native libraries are not inherited in a broken state after `fork`. Preserve manifest row order when collecting results. Expose parallelism through configuration and CLI flags; use `--workers 1` for debugging. Do not apply process pools to the Phase 5 real-time frame loop, where latency and single-threaded camera capture dominate. 
 
 ## Canonical Data Contracts
 
@@ -123,7 +129,7 @@ created_at: str
 ## Experiment IDs
 - `EXP-01`: algorithm comparison on a common feature and split protocol
 - `EXP-02`: feature ablation comparing keypoints-only, HOG-only, and hybrid features
-- `EXP-03`: robustness study using train-on-LeapGestRecog and test-on-HaGRID subset
+- `EXP-03`: robustness study using train-on-HaGRID subset and test-on-LeapGestRecog (OOD)
 - `EXP-04`: real-time deployment evaluation using the champion exported model
 
 ## Shared Module Responsibilities
@@ -149,6 +155,7 @@ created_at: str
 - HOG extraction
 - Feature concatenation
 - Feature persistence and manifest generation
+- Parallel batch extraction for offline manifests via a process pool
 
 ### `src/models/`
 - Training interfaces

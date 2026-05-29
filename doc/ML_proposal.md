@@ -68,11 +68,11 @@ To systematic explore the performance trade-offs, the coding agent will implemen
 ### 3.1 Data Corpora
 
 * 
-**Primary Dataset (LeapGestRecog):** 10 categories of clean, static gestures (e.g., *Palm, Fist, Thumb Up, L-Shape, OK, Peace*). Used for core model training and baseline evaluation.
+**Primary Dataset (HaGRID Subset):** Larger in-the-wild hand-gesture corpus with complex backgrounds, varying lighting, and diverse users. Used for core model training and baseline evaluation on the shared 10-class vocabulary.
 
 
 * 
-**Generalization Dataset (HaGRID Subset):** Introduced as an out-of-distribution (OOD) target. Features complex backgrounds, varying lighting conditions, and diverse user groups to stress-test model robustness.
+**Generalization Dataset (LeapGestRecog):** Introduced as an out-of-distribution (OOD) target. Clean, static near-infrared gestures used to stress-test cross-domain robustness.
 
 
 
@@ -102,7 +102,7 @@ The code must be structured modularly to complete four core automated experiment
  |
 | **EXP-03** | <br>**Robustness Test** 
 
- | Train on LeapGestRecog $\rightarrow$ Zero-shot Test directly on HaGRID.
+ | Train on HaGRID subset $\rightarrow$ Zero-shot Test directly on LeapGestRecog.
 
  | OOD Generalization Drop ($\Delta$ Accuracy) 
 

@@ -1,10 +1,10 @@
 experiment_id: EXP-03
 name: robustness_cross_dataset
-description: Train on LeapGestRecog and evaluate on HaGRID subset
+description: Train on HaGRID subset and evaluate on LeapGestRecog (OOD)
 
 datasets:
-  train: configs/datasets/leapgestrecog.yaml
-  eval: configs/datasets/hagrid_subset.yaml
+  train: configs/datasets/hagrid_subset.yaml
+  eval: configs/datasets/leapgestrecog.yaml
 
 features:
   config: configs/features/default.yaml

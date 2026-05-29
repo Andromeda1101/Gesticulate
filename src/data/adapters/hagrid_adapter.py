@@ -90,7 +90,9 @@ def _index_from_annotations(
     else:
         raise ValueError(f"Unsupported annotation JSON structure: {ann_path}")
 
-    target_labels = set(subset_spec.get("target_labels") or subset_spec.get("label_vocabulary") or [])
+    # Only explicit target_labels / label_filter restrict classes; label_vocabulary
+    # is a post-index reference vocabulary (e.g. canonical vocabulary overlap), not a filter.
+    target_labels = set(subset_spec.get("target_labels") or [])
     max_per_class = subset_spec.get("max_samples_per_class")
     if max_per_class is None:
         sampling = subset_spec.get("sampling") or {}
@@ -149,7 +151,9 @@ def _index_from_folders(
     subset_spec: dict[str, Any],
     capture_context: dict[str, Any],
 ) -> list[dict[str, Any]]:
-    target_labels = subset_spec.get("target_labels") or subset_spec.get("label_vocabulary") or []
+    # Only explicit target_labels / label_filter restrict classes; label_vocabulary
+    # is a post-index reference vocabulary (e.g. canonical vocabulary overlap), not a filter.
+    target_labels = subset_spec.get("target_labels") or []
     max_per_class = subset_spec.get("max_samples_per_class")
     if max_per_class is None:
         sampling = subset_spec.get("sampling") or {}
@@ -187,7 +191,7 @@ def _index_from_folders(
                     "raw_gesture_label": raw_label,
                     "gesture_label": raw_label,
                     "image_path": str(image_path),
-                    "split": "test",
+                    "split": None,
                     "capture_context": {
                         **capture_context,
                         "relative_path": rel,

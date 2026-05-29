@@ -22,15 +22,15 @@ from src.common.path_manager import (
 
 # Minimal placeholder templates when --with-placeholders creates missing files
 _PLACEHOLDER_CONFIGS: dict[str, str] = {
-    "configs/datasets/leapgestrecog.yaml": (
-        "dataset_name: leapgestrecog\n"
-        "root_path: data/raw/leapgestrecog\n"
-        "label_vocabulary: []\n"
-        "split_strategy:\n  method: stratified\n  seed: 42\n"
-    ),
     "configs/datasets/hagrid_subset.yaml": (
         "dataset_name: hagrid_subset\n"
         "root_path: data/raw/hagrid\n"
+        "label_vocabulary: []\n"
+        "split_strategy:\n  method: stratified\n  seed: 42\n"
+    ),
+    "configs/datasets/leapgestrecog.yaml": (
+        "dataset_name: leapgestrecog\n"
+        "root_path: data/raw/leapgestrecog\n"
         "label_vocabulary: []\n"
         "split_strategy:\n  method: fixed_eval\n  seed: 42\n"
     ),

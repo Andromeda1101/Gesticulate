@@ -18,6 +18,7 @@ CANONICAL_DIRECTORIES: tuple[str, ...] = (
     "data/interim",
     "data/processed",
     "data/splits",
+    "data/models",
     "artifacts/features",
     "artifacts/models",
     "artifacts/metrics",

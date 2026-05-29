@@ -2,13 +2,13 @@
 
 ## Phase Objectives
 - Implement `EXP-03`, the out-of-distribution robustness study.
-- Evaluate how well models trained on LeapGestRecog generalize to the HaGRID subset without retraining.
+- Evaluate how well models trained on the HaGRID subset generalize to LeapGestRecog (OOD) without retraining.
 - Quantify generalization drop and identify failure modes across gesture classes and conditions.
 - Produce a report that explains whether the champion model is suitable for real-world deployment or requires mitigation.
 
 ## Prerequisites
 - Champion candidates and exportable model artifacts from `doc/phase3_model_benchmarking.md`
-- HaGRID subset manifest from `doc/phase1_dataset_ingestion.md`
+- LeapGestRecog OOD manifest from `doc/phase1_dataset_ingestion.md`
 - Feature extraction pipelines from `doc/phase2_feature_pipeline.md`
 - Shared reporting conventions from `doc/project_overview.md`
 
@@ -67,12 +67,12 @@
 - **Function**: Main CLI entrypoint for `EXP-03`.
 - **Suggested CLI arguments**:
   - `--model-artifact artifacts/models/EXP-01_svm_hybrid.joblib`
-  - `--in-domain-features artifacts/features/leapgestrecog_hybrid_v1.parquet`
-  - `--ood-features artifacts/features/hagrid_subset_hybrid_v1.parquet`
+  - `--in-domain-features artifacts/features/hagrid_subset_hybrid_v1.parquet`
+  - `--ood-features artifacts/features/leapgestrecog_hybrid_v1.parquet`
   - `--config configs/experiments/exp03_robustness.yaml`
 - **Core logic**:
   1. Load champion model artifact and metadata.
-  2. Load held-out in-domain test features and HaGRID OOD features.
+  2. Load held-out in-domain test features and LeapGestRecog OOD features.
   3. Run prediction on both domains.
   4. Compute domain-shift metrics.
   5. Export metrics and report bundle.
@@ -142,7 +142,7 @@ ChampionModel + InDomainTestFeatures + OODFeatures
 
 ### Execution Steps and Example Commands
 1. Evaluate the champion model on in-domain and OOD features:
-   - `python scripts/run_robustness_eval.py --model-artifact artifacts/models/EXP-01_svm_hybrid.joblib --in-domain-features artifacts/features/leapgestrecog_hybrid_v1.parquet --ood-features artifacts/features/hagrid_subset_hybrid_v1.parquet --config configs/experiments/exp03_robustness.yaml`
+   - `python scripts/run_robustness_eval.py --model-artifact artifacts/models/EXP-01_svm_hybrid.joblib --in-domain-features artifacts/features/hagrid_subset_hybrid_v1.parquet --ood-features artifacts/features/leapgestrecog_hybrid_v1.parquet --config configs/experiments/exp03_robustness.yaml`
 2. Export a failure-case index:
    - `python scripts/export_failure_gallery.py --predictions artifacts/metrics/EXP-03_predictions.csv --output reports/summaries/exp03_failure_gallery.md`
 3. Export the domain-shift summary:

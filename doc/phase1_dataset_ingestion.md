@@ -1,7 +1,7 @@
 # Phase 1: Dataset Ingestion and Split Preparation
 
 ## Phase Objectives
-- Ingest the LeapGestRecog dataset and the planned HaGRID subset into a common internal format.
+- Ingest the HaGRID subset (primary) and LeapGestRecog (OOD) into a common internal format.
 - Normalize gesture labels, directory metadata, and sample identifiers.
 - Generate reproducible train, validation, and test splits for the main dataset.
 - Produce dataset manifests and summary statistics that all later phases can consume.
@@ -92,15 +92,15 @@
   - sample counts per class
   - subject distribution
   - missing-file warnings
-  - overlap between training label space and HaGRID subset
+  - overlap between training label space and LeapGestRecog OOD set
 - **Dependent libraries**: `pandas`, `json`
 
 ### 7. `scripts/build_dataset_manifests.py`
 - **Function**: CLI entrypoint for indexing raw data and producing manifests.
 - **Suggested CLI arguments**:
-  - `--dataset leapgestrecog`
-  - `--config configs/datasets/leapgestrecog.yaml`
-  - `--output data/interim/leapgestrecog_manifest.parquet`
+  - `--dataset hagrid_subset`
+  - `--config configs/datasets/hagrid_subset.yaml`
+  - `--output data/interim/hagrid_subset_manifest.parquet`
 - **Core logic**:
   1. Load dataset config.
   2. Select adapter.
@@ -111,7 +111,7 @@
 ### 8. `scripts/generate_splits.py`
 - **Function**: Create split and fold artifacts from the primary dataset manifest.
 - **Suggested CLI arguments**:
-  - `--manifest data/interim/leapgestrecog_manifest.parquet`
+  - `--manifest data/interim/hagrid_subset_manifest.parquet`
   - `--seed 42`
   - `--folds 5`
 - **Core logic**:
@@ -143,7 +143,7 @@ RawImages -> DatasetAdapter -> CanonicalManifest -> SplitGenerator -> SplitFiles
 - Confirm class balance across train, validation, and test splits.
 - Review a small random sample of records from both datasets to ensure label normalization is correct.
 - Ensure there is no `sample_id` duplication across manifest rows.
-- For HaGRID subset preparation, verify that only intended gesture classes are retained.
+- For LeapGestRecog OOD preparation, verify that only intended gesture classes are retained.
 
 ## Code Execution Method
 
@@ -161,21 +161,21 @@ RawImages -> DatasetAdapter -> CanonicalManifest -> SplitGenerator -> SplitFiles
   - `pip install pandas pyyaml scikit-learn pyarrow`
 
 ### Execution Steps and Example Commands
-1. Build the LeapGestRecog manifest:
-   - `python scripts/build_dataset_manifests.py --dataset leapgestrecog --config configs/datasets/leapgestrecog.yaml --output data/interim/leapgestrecog_manifest.parquet`
-2. Build the HaGRID subset manifest:
+1. Build the HaGRID subset manifest (primary):
    - `python scripts/build_dataset_manifests.py --dataset hagrid_subset --config configs/datasets/hagrid_subset.yaml --output data/interim/hagrid_subset_manifest.parquet`
-3. Generate primary splits and folds:
-   - `python scripts/generate_splits.py --manifest data/interim/leapgestrecog_manifest.parquet --seed 42 --folds 5`
+2. Build the LeapGestRecog manifest (OOD):
+   - `python scripts/build_dataset_manifests.py --dataset leapgestrecog --config configs/datasets/leapgestrecog.yaml --output data/interim/leapgestrecog_manifest.parquet`
+3. Generate primary splits and folds on HaGRID:
+   - `python scripts/generate_splits.py --manifest data/interim/hagrid_subset_manifest.parquet --config configs/datasets/hagrid_subset.yaml --seed 42 --folds 5`
 4. Export a dataset summary:
-   - `python scripts/export_dataset_report.py --manifest data/interim/leapgestrecog_manifest.parquet --output reports/summaries/leapgestrecog_summary.json`
+   - `python scripts/export_dataset_report.py --manifest data/interim/hagrid_subset_manifest.parquet --output reports/summaries/hagrid_subset_summary.json`
 
 ### Expected Output or Result Example
-- `data/interim/leapgestrecog_manifest.parquet`
 - `data/interim/hagrid_subset_manifest.parquet`
-- `data/splits/leapgestrecog_train_val_test.json`
-- `data/splits/leapgestrecog_cv_folds.json`
-- `reports/summaries/leapgestrecog_summary.json`
+- `data/interim/leapgestrecog_manifest.parquet`
+- `data/splits/hagrid_subset_train_val_test.json`
+- `data/splits/hagrid_subset_cv_folds.json`
+- `reports/summaries/hagrid_subset_summary.json`
 - Log output confirming class counts and split distributions
 
 ## Exit Criteria

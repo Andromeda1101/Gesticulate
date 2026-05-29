@@ -1,11 +1,8 @@
 dataset_name: hagrid_subset
-root_path: data/raw/hagrid
-description: HaGRID subset for OOD evaluation; labels aligned to LeapGestRecog where applicable
+root_path: data/raw/hagrid/HaGRIDv2_dataset_512
+description: HaGRID subset as primary in-domain dataset for training and evaluation
 
-# Align HaGRID class names to LeapGestRecog canonical names (see label_mapper.py).
-align_to: leapgestrecog
-
-# Reference overlap vocabulary (LeapGestRecog); does not drop other HaGRID classes.
+# Reference vocabulary for reports; does not filter samples (see label_filter).
 label_vocabulary:
   - Palm
   - L
@@ -19,17 +16,19 @@ label_vocabulary:
   - Down
 
 split_strategy:
-  method: fixed_eval
-  train_ratio: 0.0
-  val_ratio: 0.0
-  test_ratio: 1.0
+  method: stratified
+  train_ratio: 0.7
+  val_ratio: 0.15
+  test_ratio: 0.15
   seed: 42
 
 sampling:
+  # Cap per-class samples so Phase 2 extraction fits in memory (~17k rows at 500/class).
+  # null indexes the full HaGRID tree (~1M+ rows) and will OOM during hog/hybrid on typical WSL RAM.
   max_samples_per_class: 500
-  shuffle: false
+  shuffle: true
 
-# HaGRID-native names -> LeapGestRecog canonical names (additional overrides)
+# HaGRID-native names -> canonical gesture names (additional overrides)
 label_aliases:
   palm: Palm
   fist: Fist

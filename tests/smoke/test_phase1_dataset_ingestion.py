@@ -16,7 +16,7 @@ from src.data.adapters.hagrid_adapter import index_samples as index_hagrid
 from src.data.adapters.leapgestrecog_adapter import index_samples as index_leap
 from src.data.dataset_summary import load_manifest, save_manifest, summarize_dataset
 from src.data.label_mapper import (
-    LEAPGESTRECOG_LABELS,
+    CANONICAL_GESTURE_LABELS,
     apply_label_normalization,
     normalize_label,
     validate_label_coverage,
@@ -98,17 +98,39 @@ def test_hagrid_folder_indexing_retains_all_classes(hagrid_folder_tree: Path) ->
     assert raw_labels == {"palm", "fist", "like", "peace", "mute"}
 
 
-def test_hagrid_alignment_to_leapgestrecog(hagrid_folder_tree: Path) -> None:
-    raw = index_hagrid(str(hagrid_folder_tree), {"max_samples_per_class": 10})
-    normalized = apply_label_normalization(
-        raw,
-        "hagrid_subset",
-        align_to_leapgestrecog=True,
+def test_hagrid_label_vocabulary_does_not_filter_indexing(hagrid_folder_tree: Path) -> None:
+    """Canonical reference vocabulary must not drop HaGRID-native folder names."""
+    samples = index_hagrid(
+        str(hagrid_folder_tree),
+        {
+            "label_vocabulary": ["Palm", "Fist", "Thumb"],
+            "max_samples_per_class": 10,
+        },
     )
+    assert len(samples) == 5
+    assert {s["raw_gesture_label"] for s in samples} == {"palm", "fist", "like", "peace", "mute"}
+
+
+def test_hagrid_label_normalization_without_align(hagrid_folder_tree: Path) -> None:
+    raw = index_hagrid(str(hagrid_folder_tree), {"max_samples_per_class": 10})
+    normalized = apply_label_normalization(raw, "hagrid_subset")
     by_raw = {s["raw_gesture_label"]: s["gesture_label"] for s in normalized}
     assert by_raw["palm"] == "Palm"
     assert by_raw["fist"] == "Fist"
     assert by_raw["like"] == "Thumb"
+    assert by_raw["peace"] == "peace"
+    assert by_raw["mute"] == "mute"
+
+
+def test_hagrid_alignment_with_align_to_canonical(hagrid_folder_tree: Path) -> None:
+    raw = index_hagrid(str(hagrid_folder_tree), {"max_samples_per_class": 10})
+    normalized = apply_label_normalization(
+        raw,
+        "hagrid_subset",
+        align_to_canonical=True,
+    )
+    by_raw = {s["raw_gesture_label"]: s["gesture_label"] for s in normalized}
+    assert by_raw["palm"] == "Palm"
     assert by_raw["peace"] == "Peace"
     assert by_raw["mute"] == "Mute"
 
@@ -121,18 +143,31 @@ def test_hagrid_annotation_indexing(hagrid_annotation_tree: Path) -> None:
 
 def test_label_normalization_aliases() -> None:
     assert normalize_label("05_thumb", "leapgestrecog") == "Thumb"
-    assert normalize_label("like", "hagrid_subset", align_to_leapgestrecog=True) == "Thumb"
+    assert normalize_label("like", "hagrid_subset") == "Thumb"
+    assert normalize_label("like", "hagrid_subset", align_to_canonical=True) == "Thumb"
 
 
 def test_validate_label_coverage_reference_only(leapgest_tree: Path) -> None:
     samples = apply_label_normalization(index_leap(str(leapgest_tree)), "leapgestrecog")
-    coverage = validate_label_coverage(samples, list(LEAPGESTRECOG_LABELS))
+    coverage = validate_label_coverage(samples, list(CANONICAL_GESTURE_LABELS))
     assert coverage["total_samples"] == 10
     assert "outside_reference" in coverage
 
 
-def test_split_reproducibility(leapgest_tree: Path) -> None:
-    samples = apply_label_normalization(index_leap(str(leapgest_tree)), "leapgestrecog")
+@pytest.fixture
+def hagrid_split_tree(tmp_path: Path) -> Path:
+    """HaGRID-like tree with enough samples per class for stratified folds."""
+    root = tmp_path / "hagrid_split"
+    for gesture in ("palm", "fist", "like", "ok", "one"):
+        folder = root / gesture
+        folder.mkdir(parents=True)
+        for i in range(6):
+            (folder / f"{gesture}_{i}.jpg").write_bytes(b"fake")
+    return root
+
+
+def test_split_reproducibility(hagrid_split_tree: Path) -> None:
+    samples = apply_label_normalization(index_hagrid(str(hagrid_split_tree)), "hagrid_subset")
     split_a = create_primary_splits(samples, seed=42)
     split_b = create_primary_splits(samples, seed=42)
     assert split_a == split_b
@@ -148,17 +183,17 @@ def test_manifest_roundtrip(tmp_path: Path, leapgest_tree: Path) -> None:
     save_manifest(samples, manifest_path)
     loaded = load_manifest(manifest_path)
     assert len(loaded) == len(samples)
-    summary = summarize_dataset(loaded, reference_labels=list(LEAPGESTRECOG_LABELS))
+    summary = summarize_dataset(loaded, reference_labels=list(CANONICAL_GESTURE_LABELS))
     assert summary["has_duplicate_sample_ids"] is False
     assert summary["missing_file_count"] == 0
 
 
-def test_save_split_artifacts(tmp_path: Path, leapgest_tree: Path) -> None:
-    samples = apply_label_normalization(index_leap(str(leapgest_tree)), "leapgestrecog")
+def test_save_split_artifacts(tmp_path: Path, hagrid_split_tree: Path) -> None:
+    samples = apply_label_normalization(index_hagrid(str(hagrid_split_tree)), "hagrid_subset")
     splits = create_primary_splits(samples, seed=7)
     folds = create_stratified_folds(samples, n_folds=2, seed=7, primary_splits=splits)
-    tvt = save_splits(splits, tmp_path / "leapgestrecog_train_val_test.json")
-    cv = save_folds(folds, tmp_path / "leapgestrecog_cv_folds.json")
+    tvt = save_splits(splits, tmp_path / "hagrid_subset_train_val_test.json")
+    cv = save_folds(folds, tmp_path / "hagrid_subset_cv_folds.json")
     assert tvt.exists()
     assert cv.exists()
     payload = json.loads(tvt.read_text(encoding="utf-8"))

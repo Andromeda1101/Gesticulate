@@ -3,8 +3,8 @@ name: model_comparison
 description: Algorithm comparison on a common feature and split protocol
 
 datasets:
-  train: configs/datasets/leapgestrecog.yaml
-  eval: configs/datasets/leapgestrecog.yaml
+  train: configs/datasets/hagrid_subset.yaml
+  eval: configs/datasets/hagrid_subset.yaml
 
 features:
   config: configs/features/default.yaml

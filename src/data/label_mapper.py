@@ -1,12 +1,12 @@
-"""Convert dataset-native labels to a shared vocabulary aligned with LeapGestRecog."""
+"""Convert dataset-native labels to a shared canonical gesture vocabulary."""
 
 from __future__ import annotations
 
 from collections import Counter
 from typing import Any
 
-# LeapGestRecog canonical gesture names (10-class dataset)
-LEAPGESTRECOG_LABELS: tuple[str, ...] = (
+# Canonical gesture names (10-class shared vocabulary)
+CANONICAL_GESTURE_LABELS: tuple[str, ...] = (
     "Palm",
     "L",
     "Fist",
@@ -19,8 +19,11 @@ LEAPGESTRECOG_LABELS: tuple[str, ...] = (
     "Down",
 )
 
-# Native folder / alias keys -> LeapGestRecog canonical names
-_LEAPGEST_ALIASES: dict[str, str] = {
+# Backward-compatible alias
+LEAPGESTRECOG_LABELS = CANONICAL_GESTURE_LABELS
+
+# Native folder / alias keys -> canonical names (LeapGestRecog)
+_LEAPGEST_TO_CANONICAL: dict[str, str] = {
     "01_palm": "Palm",
     "palm": "Palm",
     "02_l": "L",
@@ -46,8 +49,8 @@ _LEAPGEST_ALIASES: dict[str, str] = {
     "down": "Down",
 }
 
-# HaGRID native labels mapped to the closest LeapGestRecog class where applicable
-_HAGRID_TO_LEAPGEST: dict[str, str] = {
+# HaGRID native labels mapped to the closest canonical class where applicable
+_HAGRID_TO_CANONICAL: dict[str, str] = {
     "palm": "Palm",
     "fist": "Fist",
     "like": "Thumb",
@@ -59,8 +62,8 @@ _HAGRID_TO_LEAPGEST: dict[str, str] = {
 }
 
 _DATASET_ALIASES: dict[str, dict[str, str]] = {
-    "leapgestrecog": dict(_LEAPGEST_ALIASES),
-    "hagrid_subset": dict(_HAGRID_TO_LEAPGEST),
+    "leapgestrecog": dict(_LEAPGEST_TO_CANONICAL),
+    "hagrid_subset": dict(_HAGRID_TO_CANONICAL),
 }
 
 
@@ -81,7 +84,7 @@ def normalize_label(
     *,
     label_aliases: dict[str, str] | None = None,
     canonical_labels: list[str] | None = None,
-    align_to_leapgestrecog: bool = False,
+    align_to_canonical: bool = False,
 ) -> str:
     """Map a raw label string to a canonical gesture label."""
     if not raw_label or not str(raw_label).strip():
@@ -94,9 +97,9 @@ def normalize_label(
         return stripped
 
     merged_aliases: dict[str, str] = {}
-    if align_to_leapgestrecog or dataset_name == "hagrid_subset":
-        merged_aliases.update(_HAGRID_TO_LEAPGEST)
-        merged_aliases.update(_LEAPGEST_ALIASES)
+    if align_to_canonical:
+        merged_aliases.update(_HAGRID_TO_CANONICAL)
+        merged_aliases.update(_LEAPGEST_TO_CANONICAL)
     merged_aliases.update(_DATASET_ALIASES.get(dataset_name, {}))
     if label_aliases:
         for key, value in label_aliases.items():
@@ -115,7 +118,7 @@ def normalize_label(
             if _normalize_key(canonical) == key:
                 return canonical
 
-    return title if dataset_name == "hagrid_subset" else stripped
+    return title if align_to_canonical else stripped
 
 
 def apply_label_normalization(
@@ -124,7 +127,7 @@ def apply_label_normalization(
     *,
     label_aliases: dict[str, str] | None = None,
     canonical_labels: list[str] | None = None,
-    align_to_leapgestrecog: bool = False,
+    align_to_canonical: bool = False,
     raw_label_field: str = "raw_gesture_label",
 ) -> list[dict[str, Any]]:
     """Normalize gesture labels on sample dict copies."""
@@ -138,7 +141,7 @@ def apply_label_normalization(
             dataset_name,
             label_aliases=label_aliases,
             canonical_labels=canonical_labels,
-            align_to_leapgestrecog=align_to_leapgestrecog,
+            align_to_canonical=align_to_canonical,
         )
         normalized.append(row)
     return normalized
