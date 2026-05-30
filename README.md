@@ -146,9 +146,9 @@ python scripts/run_ablation_suite.py \
   --config configs/experiments/exp02_feature_ablation.yaml
 
 # Aggregate completed runs into a summary report
-python scripts/export_phase3_report.py \
+python scripts/export_benchmark_report.py \
   --input-dir artifacts/metrics \
-  --output reports/summaries/phase3_benchmark_summary.md
+  --output reports/summaries/benchmark_summary.md
 ```
 
 Expected outputs:

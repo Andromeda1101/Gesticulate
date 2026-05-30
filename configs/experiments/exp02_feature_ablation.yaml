@@ -5,9 +5,12 @@ description: Compare keypoints-only, HOG-only, and hybrid feature families
 datasets:
   train: configs/datasets/hagrid_subset.yaml
   eval: configs/datasets/hagrid_subset.yaml
+  name: hagrid_subset
 
 features:
   config: configs/features/default.yaml
+  feature_version: v1
+  # Swept by run_ablation_suite.py (not a single feature_family).
   feature_families:
     - keypoints_only
     - hog_only
@@ -16,12 +19,32 @@ features:
 models:
   config: configs/models/baselines.yaml
   algorithms:
+    - knn
+    - svm
+    - decision_tree
     - random_forest
+    - naive_bayes
+    - logistic_regression
+    - mlp
+    - cnn
+    - lstm
+
 
 metrics:
   primary: accuracy
-  secondary:
+  report:
+    - accuracy
     - f1_macro
+    - recall_macro
+    - precision_macro
+    - f1_micro
+    - recall_micro
+    - precision_micro
+    - fit_seconds
+    - inference_seconds
+    - per_sample_inference_ms
+  secondary:
+    - confusion_matrix
 
 outputs:
   models_dir: artifacts/models

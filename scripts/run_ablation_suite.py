@@ -29,7 +29,11 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help="Override algorithms; defaults to experiment config",
     )
-    parser.add_argument("--dataset-name", default="hagrid_subset")
+    parser.add_argument(
+        "--dataset-name",
+        default=None,
+        help="Dataset stem for splits/features (default: datasets.name in experiment YAML)",
+    )
     return parser.parse_args()
 
 
@@ -41,7 +45,15 @@ def main() -> int:
     baselines_path = experiment_config.get("models", {}).get("config", "configs/models/baselines.yaml")
     baselines_config = load_config(str(PROJECT_ROOT / baselines_path))
 
-    feature_families = experiment_config.get("features", {}).get("feature_families", [])
+    features_cfg = experiment_config.get("features", {})
+    datasets_cfg = experiment_config.get("datasets", {})
+    dataset_name = (
+        args.dataset_name
+        or datasets_cfg.get("name")
+        or "hagrid_subset"
+    )
+    feature_version = features_cfg.get("feature_version", "v1")
+    feature_families = features_cfg.get("feature_families", [])
     algorithms = args.algorithms or experiment_config.get("models", {}).get("algorithms", ["random_forest"])
 
     records = []
@@ -53,11 +65,15 @@ def main() -> int:
                 feature_family=family,
                 algorithm=algo,
                 baselines_config=baselines_config,
-                dataset_name=args.dataset_name,
+                dataset_name=dataset_name,
+                feature_version=feature_version,
             )
             records.append(record)
 
-    summary = build_experiment_summary(records)
+    summary = build_experiment_summary(
+        records,
+        metrics_config=experiment_config.get("metrics"),
+    )
     out_csv = PROJECT_ROOT / "reports" / "tables" / f"{args.experiment_id.lower()}_ablation_leaderboard.csv"
     export_leaderboard(summary, out_csv)
     print(f"Ablation leaderboard: {out_csv}")
