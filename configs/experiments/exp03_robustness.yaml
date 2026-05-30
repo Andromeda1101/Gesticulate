@@ -13,16 +13,33 @@ features:
 models:
   config: configs/models/baselines.yaml
   algorithms:
+    - knn
+    - svm
+    - decision_tree
     - random_forest
-    - svm_rbf
+    - naive_bayes
+    - logistic_regression
+    - mlp
+    - cnn
+    - lstm
 
 metrics:
   primary: accuracy
-  secondary:
+  report:
+    - accuracy
     - f1_macro
-    - per_class_recall
+    - recall_macro
+    - precision_macro
+    - f1_micro
+    - recall_micro
+    - precision_micro
+    - fit_seconds
+    - inference_seconds
+    - per_sample_inference_ms
+  secondary:
+    - confusion_matrix
 
 outputs:
   models_dir: artifacts/models
-  metrics_dir: artifacts/metrics
+  metrics_dir: artifacts/metrics/exp03_robustness
   reports_dir: reports/tables

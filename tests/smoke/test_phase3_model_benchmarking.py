@@ -188,6 +188,25 @@ def test_experiment_summary_includes_configured_metrics() -> None:
     assert "confusion_matrix" not in row
 
 
+def test_format_leaderboard_markdown_table() -> None:
+    from src.evaluation.report_builder import format_leaderboard_markdown_table
+
+    summary = {
+        "report_metrics": ["accuracy", "f1_macro"],
+        "leaderboard": [
+            {
+                "algorithm": "svm",
+                "feature_family": "hybrid",
+                "accuracy": 0.8123456789,
+                "f1_macro": 0.8012345678,
+            }
+        ],
+    }
+    md = format_leaderboard_markdown_table(summary)
+    assert "| algorithm | feature_family | accuracy | f1_macro |" in md
+    assert "| svm | hybrid | 0.8123 | 0.8012 |" in md
+
+
 def test_end_to_end_runner(synthetic_feature_artifacts: Path, tmp_path: Path) -> None:
     exp_config = {
         "experiment_id": "EXP-01",

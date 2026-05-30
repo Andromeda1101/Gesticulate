@@ -44,5 +44,5 @@ metrics:
 
 outputs:
   models_dir: artifacts/models
-  metrics_dir: artifacts/metrics
+  metrics_dir: artifacts/metrics/exp01_model_comparison
   reports_dir: reports/tables

@@ -12,11 +12,7 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-Optional: scaffold missing config placeholders:
-
-```bash
-python scripts/bootstrap_project.py --project-root . --with-placeholders
-```
+Download datasets [HaDRID](https://github.com/hukenovs/hagrid) and [LeapGestRecog](https://www.kaggle.com/datasets/gti-upm/leapgestrecog/data) from official websets.
 
 Place raw data under:
 
@@ -172,27 +168,7 @@ python scripts/run_robustness_eval.py \
 
 ### 5. Real-time deployment (Phase 5, planned)
 
-See `doc/phase5_realtime_deployment.md` for `run_realtime_demo.py` and `benchmark_runtime.py`.
 
-## Smoke tests
-
-```bash
-pytest tests/smoke/test_phase0_foundation.py -q
-pytest tests/smoke/test_phase1_dataset_ingestion.py -q
-pytest tests/smoke/ -q
-```
-
-Phase 2 tests require `opencv-python` and related packages from `requirements.txt`.
-
-```bash
-pytest tests/smoke/test_phase3_model_benchmarking.py -q
-```
-
-Phase 3 deep baselines require `torch` (included in `requirements.txt`).
-
-## Repository layout
-
-See [doc/project_overview.md](doc/project_overview.md) for the canonical directory structure, experiment IDs (`EXP-01`–`EXP-04`), and artifact naming rules.
 
 ## Experiment IDs
 

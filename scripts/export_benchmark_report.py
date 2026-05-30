@@ -12,7 +12,12 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.evaluation.report_builder import build_experiment_summary, export_leaderboard, load_run_records
+from src.evaluation.report_builder import (
+    build_experiment_summary,
+    export_leaderboard,
+    format_leaderboard_markdown_table,
+    load_run_records,
+)
 
 
 def parse_args() -> argparse.Namespace:
@@ -45,18 +50,13 @@ def main() -> int:
         "# Benchmark Summary",
         "",
         f"Completed runs: {summary.get('n_runs', 0)}",
+        f"Primary metric: `{summary.get('primary_metric', 'accuracy')}`",
         "",
         "## Leaderboard",
         "",
+        format_leaderboard_markdown_table(summary).rstrip(),
+        "",
     ]
-    report_metrics = summary.get("report_metrics") or []
-    for row in summary.get("leaderboard", []):
-        metric_parts = ", ".join(
-            f"{key}={row.get(key)}" for key in report_metrics if key in row
-        )
-        lines.append(
-            f"- **{row.get('algorithm')}** ({row.get('feature_family')}): {metric_parts}"
-        )
 
     output_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
     csv_path = output_path.with_suffix(".csv")

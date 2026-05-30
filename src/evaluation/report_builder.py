@@ -129,6 +129,36 @@ def export_leaderboard(summary: dict[str, Any], output_path: str | Path) -> Path
     return path
 
 
+def format_leaderboard_markdown_table(
+    summary: dict[str, Any],
+    *,
+    id_columns: tuple[str, ...] = ("algorithm", "feature_family"),
+    float_precision: int = 4,
+) -> str:
+    """Render leaderboard rows as a GitHub-flavored markdown table."""
+    leaderboard = summary.get("leaderboard", [])
+    if not leaderboard:
+        return "_No completed runs._\n"
+
+    report_metrics = list(summary.get("report_metrics") or [])
+    columns = [*id_columns, *report_metrics]
+
+    def _cell(value: Any) -> str:
+        if value is None:
+            return ""
+        if isinstance(value, float):
+            return f"{value:.{float_precision}f}"
+        return str(value).replace("|", "\\|")
+
+    header = "| " + " | ".join(columns) + " |"
+    separator = "| " + " | ".join("---" for _ in columns) + " |"
+    body = [
+        "| " + " | ".join(_cell(row.get(col)) for col in columns) + " |"
+        for row in leaderboard
+    ]
+    return "\n".join([header, separator, *body]) + "\n"
+
+
 def load_confusion_matrix_csv(path: str | Path) -> tuple[list[list[int]], list[str]]:
     """Load matrix and class labels from an exported confusion CSV."""
     df = pd.read_csv(path, index_col=0)
