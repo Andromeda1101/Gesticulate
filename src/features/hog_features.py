@@ -10,8 +10,7 @@ from skimage.color import rgb2gray
 from skimage.feature import hog
 
 from src.features.hand_detector import HAND_LANDMARK_COUNT
-
-DEFAULT_CROP_SIZE = (64, 64)
+from src.features.hog_layout import DEFAULT_CROP_SIZE, hog_block_grid_shape
 DEFAULT_PADDING = 0.15
 
 

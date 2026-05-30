@@ -22,17 +22,37 @@ from src.features.geometric_features import (
     compute_pairwise_distances,
     normalize_landmarks,
 )
-from src.features.hand_detector import (
-    HAND_LANDMARK_COUNT,
-    detect_hand_landmarks,
-    landmarks_to_raw_vector,
-    reset_detector,
-)
-from src.features.hog_features import crop_hand_region, extract_hog_descriptor, extract_hog_from_image
+try:
+    from src.features.hand_detector import (
+        HAND_LANDMARK_COUNT,
+        detect_hand_landmarks,
+        landmarks_to_raw_vector,
+        reset_detector,
+    )
+except ImportError:  # pragma: no cover - optional Phase 2 runtime deps
+    HAND_LANDMARK_COUNT = 21
+    detect_hand_landmarks = None  # type: ignore[assignment,misc]
+    landmarks_to_raw_vector = None  # type: ignore[assignment,misc]
+    reset_detector = None  # type: ignore[assignment,misc]
+
+try:
+    from src.features.hog_features import (
+        crop_hand_region,
+        extract_hog_descriptor,
+        extract_hog_from_image,
+    )
+except ImportError:  # pragma: no cover
+    crop_hand_region = None  # type: ignore[assignment,misc]
+    extract_hog_descriptor = None  # type: ignore[assignment,misc]
+    extract_hog_from_image = None  # type: ignore[assignment,misc]
+
 from src.features.quality_checks import (
     apply_quality_flags,
     evaluate_feature_coverage,
+    filter_invalid_geometric_feature_records,
     flag_low_confidence_samples,
+    is_all_zero_feature_vector,
+    is_invalid_geometric_feature_record,
 )
 
 __all__ = [
@@ -51,9 +71,12 @@ __all__ = [
     "crop_hand_region",
     "detect_hand_landmarks",
     "evaluate_feature_coverage",
+    "filter_invalid_geometric_feature_records",
     "extract_hog_descriptor",
     "extract_hog_from_image",
     "flag_low_confidence_samples",
+    "is_all_zero_feature_vector",
+    "is_invalid_geometric_feature_record",
     "landmarks_to_raw_vector",
     "load_feature_matrix",
     "manifest_path_for_matrix",

@@ -27,7 +27,7 @@ Place raw data under:
 
 Run from the repository root with the virtual environment activated. Commands below use the current dataset roles (HaGRID = in-domain, LeapGestRecog = OOD).
 
-### 1. Dataset manifests and splits (Phase 1)
+### 1. Dataset manifests and splits
 
 Build manifests:
 
@@ -63,7 +63,7 @@ python scripts/export_dataset_report.py \
 
 **Outputs:** `data/interim/hagrid_subset_manifest.parquet`, `data/interim/leapgestrecog_manifest.parquet`, `data/splits/hagrid_subset_train_val_test.json`, `data/splits/hagrid_subset_cv_folds.json`.
 
-### 2. Feature extraction (Phase 2)
+### 2. Feature extraction
 
 In-domain features (HaGRID) for EXP-01 and EXP-02:
 
@@ -122,23 +122,41 @@ python scripts/extract_features.py \
   --workers 8
 ```
 
-### 3. Model benchmarking (Phase 3, planned)
+### 3. Model benchmarking
 
-Scripts are specified in `doc/phase3_model_benchmarking.md` and not yet implemented. Intended entry points:
+Custom classical models (KNN, SVM, Decision Tree, Random Forest, Naive Bayes, Logistic Regression) and PyTorch baselines (MLP, CNN, LSTM) share one experiment runner. Model banchmarking reads feature parquet files and split JSON only.
 
 ```bash
-# EXP-01: algorithm comparison on hagrid_subset features
+# EXP-01: single algorithm run
 python scripts/run_experiment.py \
   --experiment-id EXP-01 \
   --feature-family hybrid \
   --algorithm svm \
   --config configs/experiments/exp01_model_comparison.yaml
 
-# EXP-02: feature ablation
+# EXP-01: full classical + deep sweep on hybrid features
+python scripts/run_benchmark_suite.py \
+  --experiment-id EXP-01 \
+  --feature-family hybrid \
+  --algorithms knn svm decision_tree random_forest naive_bayes logistic_regression mlp
+
+# EXP-02: feature ablation (keypoints / HOG / hybrid)
 python scripts/run_ablation_suite.py \
   --experiment-id EXP-02 \
   --config configs/experiments/exp02_feature_ablation.yaml
+
+# Aggregate completed runs into a summary report
+python scripts/export_phase3_report.py \
+  --input-dir artifacts/metrics \
+  --output reports/summaries/phase3_benchmark_summary.md
 ```
+
+Expected outputs:
+
+- `artifacts/models/{experiment_id}_{algorithm}_{feature_family}.joblib` (or `.pt` for deep models)
+- `artifacts/models/{experiment_id}_{algorithm}_{feature_family}.meta.json`
+- `artifacts/metrics/{experiment_id}_{run_id}.json`
+- `reports/tables/*_leaderboard.csv` and `reports/figures/*_confusion.png`
 
 ### 4. Robustness evaluation (Phase 4, planned)
 
@@ -165,6 +183,12 @@ pytest tests/smoke/ -q
 ```
 
 Phase 2 tests require `opencv-python` and related packages from `requirements.txt`.
+
+```bash
+pytest tests/smoke/test_phase3_model_benchmarking.py -q
+```
+
+Phase 3 deep baselines require `torch` (included in `requirements.txt`).
 
 ## Repository layout
 

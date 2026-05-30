@@ -23,11 +23,12 @@
   - Naive Bayes
   - Logistic Regression
   - MLP
-  - Placeholder wrappers for CNN and LSTM sequence variants if sequence data is added later
+  - CNN
+  - LSTM
 - **Suggested interface**:
   - `get_model_builder(algorithm_name: str)`
   - `list_supported_algorithms() -> list[str]`
-- **Dependent libraries**: `scikit-learn`, optional `torch` or `tensorflow`
+- **Dependent libraries**: `scikit-learn`, `torch`
 
 ### 2. `src/models/trainers/classical_trainer.py`
 - **Function**: Train classical ML models on a selected feature matrix and split definition.

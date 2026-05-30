@@ -5,22 +5,41 @@ description: Algorithm comparison on a common feature and split protocol
 datasets:
   train: configs/datasets/hagrid_subset.yaml
   eval: configs/datasets/hagrid_subset.yaml
+  name: hagrid_subset
 
 features:
   config: configs/features/default.yaml
   feature_family: hybrid
+  feature_version: v1
 
 models:
   config: configs/models/baselines.yaml
   algorithms:
-    - logistic_regression
+    - knn
+    - svm
+    - decision_tree
     - random_forest
-    - svm_rbf
+    - naive_bayes
+    - logistic_regression
+    - mlp
+    - cnn
+    - lstm
 
 metrics:
   primary: accuracy
-  secondary:
+  # Scalar columns exported to leaderboard CSV / benchmark summaries.
+  report:
+    - accuracy
     - f1_macro
+    - recall_macro
+    - precision_macro
+    - f1_micro
+    - recall_micro
+    - precision_micro
+    - fit_seconds
+    - inference_seconds
+    - per_sample_inference_ms
+  secondary:
     - confusion_matrix
 
 outputs:

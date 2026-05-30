@@ -1,30 +1,89 @@
 algorithm_registry:
-  logistic_regression:
+  knn:
     enabled: true
-    class: sklearn.linear_model.LogisticRegression
+    implementation: custom
     hyperparameters:
-      max_iter: 1000
+      n_neighbors: 5
+      random_state: 42
+  svm:
+    enabled: true
+    implementation: custom
+    hyperparameters:
       C: 1.0
-  random_forest:
-    enabled: true
-    class: sklearn.ensemble.RandomForestClassifier
-    hyperparameters:
-      n_estimators: 200
-      max_depth: null
+      kernel: rbf
+      gamma: scale
+      max_iter: 300
+      tol: 1.0e-3
       random_state: 42
   svm_rbf:
     enabled: true
-    class: sklearn.svm.SVC
+    implementation: custom
     hyperparameters:
-      kernel: rbf
       C: 1.0
+      kernel: rbf
       gamma: scale
-      probability: true
+      max_iter: 300
+      tol: 1.0e-3
+      random_state: 42
+  decision_tree:
+    enabled: true
+    implementation: custom
+    hyperparameters:
+      max_depth: 10
+      min_samples_leaf: 2
+      random_state: 42
+  random_forest:
+    enabled: true
+    implementation: custom
+    hyperparameters:
+      n_estimators: 50
+      max_depth: 10
+      max_features: sqrt
+      random_state: 42
+  naive_bayes:
+    enabled: true
+    implementation: custom
+    hyperparameters:
+      var_smoothing: 1.0e-9
+      random_state: 42
+  logistic_regression:
+    enabled: true
+    implementation: custom
+    hyperparameters:
+      C: 1.0
+      max_iter: 500
+      learning_rate: 0.1
+      random_state: 42
+  mlp:
+    enabled: true
+    implementation: torch
+    hyperparameters:
+      hidden_dims: [128, 64]
+      dropout: 0.2
+      epochs: 20
+      learning_rate: 0.001
+      random_state: 42
+  cnn:
+    enabled: true
+    implementation: torch
+    hyperparameters:
+      hidden_channels: 16
+      epochs: 20
+      learning_rate: 0.001
+      random_state: 42
+  lstm:
+    enabled: true
+    implementation: torch
+    hyperparameters:
+      hidden_size: 64
+      num_layers: 1
+      epochs: 20
+      learning_rate: 0.001
+      random_state: 42
 
 validation:
-  strategy: stratified_kfold
-  n_splits: 5
-  shuffle: true
+  strategy: holdout
+  split_file: data/splits/hagrid_subset_train_val_test.json
   random_state: 42
 
 export:

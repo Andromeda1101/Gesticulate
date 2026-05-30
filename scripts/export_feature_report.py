@@ -74,7 +74,7 @@ def main() -> int:
         path = Path(matrix_path)
         if not path.is_absolute():
             path = root / path
-        table = load_feature_matrix(path)
+        table = load_feature_matrix(path, exclude_invalid=False)
         coverage = evaluate_feature_coverage(table.records)
         report["live_coverage"] = coverage
         report["low_confidence_sample_ids"] = flag_low_confidence_samples(

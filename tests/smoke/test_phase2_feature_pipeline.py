@@ -35,7 +35,9 @@ from src.features.hog_features import extract_hog_descriptor, hog_descriptor_dim
 from src.features.batch_extraction import extract_samples_batch, resolve_num_workers
 from src.features.quality_checks import (
     evaluate_feature_coverage,
+    filter_invalid_geometric_feature_records,
     flag_low_confidence_samples,
+    is_invalid_geometric_feature_record,
     merge_feature_coverage,
 )
 from src.data.dataset_summary import save_manifest
@@ -159,6 +161,38 @@ def test_feature_matrix_persistence_roundtrip(tmp_path: Path, feature_config: di
     payload = json.loads(manifest_path.read_text(encoding="utf-8"))
     assert payload["vector_dim"] == GEOMETRIC_VECTOR_DIM
     assert payload["config_fingerprint"]
+
+
+def test_load_feature_matrix_excludes_zero_geometric(tmp_path: Path) -> None:
+    landmarks = _synthetic_landmarks()
+    valid_vector = build_geometric_vector(landmarks)
+    records = [
+        build_feature_record(
+            "failed",
+            "geometric",
+            np.zeros(GEOMETRIC_VECTOR_DIM),
+            {"extraction_ok": False, "quality_flags": {"detection_failed": True}},
+            gesture_label="Palm",
+        ),
+        build_feature_record(
+            "ok",
+            "geometric",
+            valid_vector,
+            {"extraction_ok": True, "confidence": 0.9},
+            gesture_label="Fist",
+        ),
+    ]
+    matrix_path = tmp_path / "filtered_geometric_v1.parquet"
+    save_feature_matrix(records, matrix_path)
+
+    loaded = load_feature_matrix(matrix_path)
+    assert len(loaded.records) == 1
+    assert loaded.records[0]["sample_id"] == "ok"
+
+    kept, dropped = filter_invalid_geometric_feature_records(records)
+    assert dropped == 1
+    assert len(kept) == 1
+    assert not is_invalid_geometric_feature_record(kept[0])
 
 
 def test_hybrid_sample_id_alignment_and_concat(tmp_path: Path, feature_config: dict) -> None:

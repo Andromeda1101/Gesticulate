@@ -73,20 +73,23 @@ def main() -> int:
     keypoint_path, hog_path, output_path = keypoint_path, hog_path, output_path
 
     keypoint_table = load_feature_matrix(keypoint_path)
-    hog_table = load_feature_matrix(hog_path)
+    hog_table = load_feature_matrix(hog_path, exclude_invalid=False)
 
     kp_by_id = _index_by_sample_id(keypoint_table)
     hog_by_id = _index_by_sample_id(hog_table)
 
     kp_ids = list(kp_by_id.keys())
-    hog_ids = list(hog_by_id.keys())
-    if kp_ids != hog_ids:
-        missing_in_hog = sorted(set(kp_ids) - set(hog_ids))
-        missing_in_kp = sorted(set(hog_ids) - set(kp_ids))
+    missing_in_hog = sorted(set(kp_ids) - set(hog_by_id))
+    if missing_in_hog:
         raise ValueError(
-            "Sample ID mismatch between feature tables. "
-            f"Only in keypoints ({len(missing_in_hog)}): {missing_in_hog[:5]}... "
-            f"Only in hog ({len(missing_in_kp)}): {missing_in_kp[:5]}..."
+            "HOG feature table missing rows for valid geometric samples. "
+            f"Missing ({len(missing_in_hog)}): {missing_in_hog[:5]}..."
+        )
+    skipped_invalid_geom = len(hog_by_id) - len(kp_ids)
+    if skipped_invalid_geom:
+        logger.info(
+            "Skipping %d samples with invalid geometric features when building hybrid",
+            skipped_invalid_geom,
         )
 
     kp_family = str(kp_by_id[kp_ids[0]].get("feature_family", "geometric"))

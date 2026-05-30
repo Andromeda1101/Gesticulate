@@ -12,6 +12,11 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from src.common.logger import get_logger
+from src.features.quality_checks import filter_invalid_geometric_feature_records
+
+_logger = get_logger(__name__)
+
 
 @dataclass
 class FeatureTable:
@@ -180,7 +185,17 @@ def build_feature_manifest_from_matrix(
     }
 
 
-def load_feature_matrix(path: str | Path) -> FeatureTable:
+def load_feature_matrix(
+    path: str | Path,
+    *,
+    exclude_invalid: bool = True,
+) -> FeatureTable:
+    """Load a feature matrix from disk.
+
+    When *exclude_invalid* is True (default), rows with failed geometric extraction
+    (all-zero placeholder vectors, ``extraction_ok=False``, or ``detection_failed``)
+    are removed so training and hybrid merges do not learn from empty hand features.
+    """
     file_path = Path(path)
     if not file_path.is_file():
         raise FileNotFoundError(f"Feature matrix not found: {file_path}")
@@ -197,6 +212,22 @@ def load_feature_matrix(path: str | Path) -> FeatureTable:
         inline = record.get("vector_inline")
         if isinstance(inline, np.ndarray):
             record["vector_inline"] = inline.tolist()
+
+    if exclude_invalid and records:
+        family = str(records[0].get("feature_family", ""))
+        should_filter = family in ("geometric", "keypoints_raw") or "hybrid" in family
+        if should_filter:
+            before = len(records)
+            records, dropped = filter_invalid_geometric_feature_records(records)
+            if dropped:
+                _logger.info(
+                    "Excluded %d / %d invalid %s feature rows from %s",
+                    dropped,
+                    before,
+                    family,
+                    file_path,
+                )
+
     return FeatureTable(records=records, path=file_path)
 
 

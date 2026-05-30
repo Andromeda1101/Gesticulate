@@ -5,7 +5,10 @@ from __future__ import annotations
 from collections import Counter
 from typing import Any
 
+import numpy as np
+
 _UNKNOWN_LABEL = "_unknown_"
+_GEOMETRIC_FAMILIES = frozenset({"geometric", "keypoints_raw"})
 
 
 def _gesture_label(record: dict[str, Any]) -> str:
@@ -15,11 +18,42 @@ def _gesture_label(record: dict[str, Any]) -> str:
     return str(label)
 
 
-def _record_extraction_successful(record: dict[str, Any]) -> bool:
-    ok = bool(record.get("extraction_ok", True))
+def is_all_zero_feature_vector(record: dict[str, Any]) -> bool:
+    """True when vector_inline is missing or every component is zero."""
     inline = record.get("vector_inline")
-    has_vector = inline is not None and len(inline) > 0
-    return ok and has_vector
+    if inline is None or len(inline) == 0:
+        return True
+    vec = np.asarray(inline, dtype=np.float64)
+    return not np.any(vec)
+
+
+def is_invalid_geometric_feature_record(record: dict[str, Any]) -> bool:
+    """
+    True for placeholder / failed geometric keypoint rows that must not be used for training.
+
+    Failed MediaPipe detection yields an all-zero vector with extraction_ok=False.
+    """
+    if not bool(record.get("extraction_ok", True)):
+        return True
+    flags = record.get("quality_flags") or {}
+    if flags.get("detection_failed"):
+        return True
+    family = str(record.get("feature_family", ""))
+    if family in _GEOMETRIC_FAMILIES:
+        return is_all_zero_feature_vector(record)
+    return False
+
+
+def filter_invalid_geometric_feature_records(
+    records: list[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], int]:
+    """Drop rows that should not participate in training or hybrid merge."""
+    kept = [record for record in records if not is_invalid_geometric_feature_record(record)]
+    return kept, len(records) - len(kept)
+
+
+def _record_extraction_successful(record: dict[str, Any]) -> bool:
+    return not is_invalid_geometric_feature_record(record)
 
 
 def _empty_coverage() -> dict[str, Any]:
