@@ -3,15 +3,22 @@
 from __future__ import annotations
 
 import hashlib
+import re
 from pathlib import Path
 from typing import Any
 
 _IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
+_LEAPGEST_GESTURE_DIR = re.compile(r"^\d{2}_[a-z0-9_]+$", re.IGNORECASE)
 
 
 def _stable_sample_id(dataset_name: str, rel_path: str) -> str:
     payload = f"{dataset_name}:{rel_path}".encode("utf-8")
     return hashlib.sha256(payload).hexdigest()[:16]
+
+
+def _looks_like_leapgest_gesture_dir(name: str) -> bool:
+    """True for LeapGestRecog folders such as ``01_palm`` or ``10_down``."""
+    return bool(_LEAPGEST_GESTURE_DIR.match(name.strip()))
 
 
 def _infer_subject_and_label(parts: tuple[str, ...]) -> tuple[str | None, str]:
@@ -20,12 +27,14 @@ def _infer_subject_and_label(parts: tuple[str, ...]) -> tuple[str | None, str]:
 
     Common layouts:
       subject_XX/Gesture/image.jpg
+      leapGestRecog/<subject_id>/01_palm/image.jpg
       Gesture/subject_XX/image.jpg
       Gesture/image.jpg
     """
-    if len(parts) < 2:
-        gesture = parts[-1] if parts else "unknown"
-        return None, gesture
+    if not parts:
+        return None, "unknown"
+    if len(parts) == 1:
+        return None, parts[0]
 
     lower_parts = [p.lower() for p in parts]
     subject_idx = next(
@@ -39,10 +48,12 @@ def _infer_subject_and_label(parts: tuple[str, ...]) -> tuple[str | None, str]:
         gesture = label_candidates[-1] if label_candidates else "unknown"
         return subject_id, gesture
 
-    # Gesture folder immediately above image
-    gesture = parts[-2]
-    subject_id = parts[-3] if len(parts) >= 3 else None
-    return subject_id, gesture
+    # Official layout: .../<subject_id>/<NN_gesture>/frame.jpg
+    if _looks_like_leapgest_gesture_dir(parts[-1]):
+        return (parts[-2] if len(parts) >= 2 else None), parts[-1]
+
+    # Single gesture folder above the image
+    return (parts[-2] if len(parts) >= 2 else None), parts[-1]
 
 
 def index_samples(

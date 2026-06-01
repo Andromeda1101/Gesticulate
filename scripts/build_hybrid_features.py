@@ -13,6 +13,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from src.common.config_loader import load_config
+from src.data.label_mapper import normalize_sample_gesture_label
 from src.common.logger import get_logger
 from src.common.path_manager import resolve_project_root
 from src.features.feature_combiner import build_feature_record, concatenate_features
@@ -103,8 +104,8 @@ def main() -> int:
     label_mismatches: list[str] = []
 
     for sample_id in kp_ids:
-        kp_rec = kp_by_id[sample_id]
-        hog_rec = hog_by_id[sample_id]
+        kp_rec = normalize_sample_gesture_label(kp_by_id[sample_id])
+        hog_rec = normalize_sample_gesture_label(hog_by_id[sample_id])
         if kp_rec.get("gesture_label") != hog_rec.get("gesture_label"):
             label_mismatches.append(sample_id)
 

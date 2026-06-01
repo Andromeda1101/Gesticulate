@@ -15,6 +15,7 @@ from src.features.hand_detector import (
     landmarks_to_raw_vector,
 )
 from src.features.hog_features import extract_hog_from_image, hog_descriptor_dim
+from src.data.label_mapper import normalize_sample_gesture_label
 from src.features.feature_combiner import build_feature_record
 
 KEYPOINTS_RAW_DIM = HAND_LANDMARK_COUNT * 3
@@ -57,6 +58,7 @@ def extract_sample_features(
     if feature_family not in SUPPORTED_FAMILIES:
         raise ValueError(f"Unsupported feature family: {feature_family}")
 
+    sample = normalize_sample_gesture_label(sample)
     feature_version = str(config.get("feature_version", "v1"))
     fam_cfg = family_config(config, feature_family)
     sample_id = str(sample["sample_id"])

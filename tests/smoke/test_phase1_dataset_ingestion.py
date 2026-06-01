@@ -19,6 +19,7 @@ from src.data.label_mapper import (
     CANONICAL_GESTURE_LABELS,
     apply_label_normalization,
     normalize_label,
+    normalize_sample_gesture_label,
     validate_label_coverage,
 )
 from src.data.split_generator import (
@@ -77,6 +78,22 @@ def test_leapgestrecog_indexing(leapgest_tree: Path) -> None:
     ids = [s["sample_id"] for s in samples]
     assert len(ids) == len(set(ids))
     assert all(Path(s["image_path"]).is_file() for s in samples)
+
+
+def test_leapgestrecog_nested_subject_layout(tmp_path: Path) -> None:
+    """Official layout: leapGestRecog/<subject>/<NN_gesture>/frame.jpg"""
+    root = tmp_path / "leapgestrecog"
+    frame_dir = root / "leapGestRecog" / "00" / "01_palm"
+    frame_dir.mkdir(parents=True)
+    (frame_dir / "frame_00_01_0001.jpg").write_bytes(b"fake")
+
+    samples = index_leap(str(root))
+    assert len(samples) == 1
+    assert samples[0]["raw_gesture_label"] == "01_palm"
+    assert samples[0]["subject_id"] == "00"
+
+    normalized = apply_label_normalization(samples, "leapgestrecog")
+    assert normalized[0]["gesture_label"] == "Palm"
 
 
 def test_leapgestrecog_label_normalization(leapgest_tree: Path) -> None:
@@ -139,6 +156,21 @@ def test_hagrid_annotation_indexing(hagrid_annotation_tree: Path) -> None:
     samples = index_hagrid(str(hagrid_annotation_tree), {})
     assert len(samples) == 4
     assert samples[0]["capture_context"]["format"] == "annotations"
+
+
+def test_normalize_sample_gesture_label_from_image_path() -> None:
+    """Repair rows that mistakenly used subject id as gesture_label."""
+    sample = {
+        "sample_id": "abc",
+        "dataset_name": "leapgestrecog",
+        "gesture_label": "00",
+        "raw_gesture_label": "00",
+        "image_path": "/data/leapGestRecog/00/01_palm/frame_00_01_0001.jpg",
+        "capture_context": {"relative_path": "leapGestRecog/00/01_palm/frame_00_01_0001.jpg"},
+    }
+    fixed = normalize_sample_gesture_label(sample)
+    assert fixed["raw_gesture_label"] == "01_palm"
+    assert fixed["gesture_label"] == "Palm"
 
 
 def test_label_normalization_aliases() -> None:

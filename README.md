@@ -107,6 +107,22 @@ python scripts/build_hybrid_features.py \
   --output artifacts/features/leapgestrecog_hybrid_v1.parquet
 ```
 
+LeapGestRecog labels are mapped to the shared 10-class vocabulary (`Palm`, `Fist`, …) at manifest time. If an older manifest used subject ids (`00`–`09`) as `gesture_label`, rebuild the manifest and sync existing feature files (faster than re-extracting):
+
+```bash
+python scripts/build_dataset_manifests.py \
+  --dataset leapgestrecog \
+  --config configs/datasets/leapgestrecog.yaml \
+  --output data/interim/leapgestrecog_manifest.parquet
+
+python scripts/sync_feature_labels_from_manifest.py \
+  --manifest data/interim/leapgestrecog_manifest.parquet \
+  --matrix artifacts/features/leapgestrecog_geometric_v1.parquet \
+  --matrix artifacts/features/leapgestrecog_hog_v1.parquet \
+  --matrix artifacts/features/leapgestrecog_hybrid_v1.parquet \
+  --refresh-manifest
+```
+
 Parallel extraction (optional; use `--workers 1` for debugging):
 
 ```bash
@@ -154,17 +170,58 @@ Expected outputs:
 - `artifacts/metrics/{experiment_id}_{run_id}.json`
 - `reports/tables/*_leaderboard.csv` and `reports/figures/*_confusion.png`
 
-### 4. Robustness evaluation (Phase 4, planned)
+### 4. Robustness evaluation (EXP-03)
 
-Train on HaGRID, evaluate on LeapGestRecog without retraining (`configs/experiments/exp03_robustness.yaml`):
+Train on HaGRID , then evaluate the champion model on in-domain **test** split and LeapGestRecog OOD features without retraining (`configs/experiments/exp03_robustness.yaml`):
 
 ```bash
+# WSL-safe defaults: streamed parquet batches, no predict_proba, single-threaded BLAS
+OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 \
 python scripts/run_robustness_eval.py \
   --model-artifact artifacts/models/EXP-01_svm_hybrid.joblib \
   --in-domain-features artifacts/features/hagrid_subset_hybrid_v1.parquet \
   --ood-features artifacts/features/leapgestrecog_hybrid_v1.parquet \
-  --config configs/experiments/exp03_robustness.yaml
+  --config configs/experiments/exp03_robustness.yaml \
+  --batch-size 128
+
+OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 \
+python scripts/run_robustness_eval.py   \
+  --model-artifact artifacts/models/EXP-02_cnn_keypoints_only.pt   \
+  --in-domain-features artifacts/features/hagrid_subset_geometric_v1.parquet   \
+  --ood-features artifacts/features/leapgestrecog_geometric_v1.parquet   \
+  --config configs/experiments/exp03_robustness.yaml   \
+  --batch-size 128
+
+# If memory is still tight, try --batch-size 64.
+# Add --include-proba for masked shared-class argmax OOD metrics (uses more memory on large SVMs).
+
+python scripts/export_failure_gallery.py \
+  --predictions artifacts/metrics/exp03_robustness/EXP-03_<run_id>_predictions.csv \
+  --output reports/summaries/exp03_failure_gallery.md
+
+python scripts/export_ood_report.py \
+  --metrics artifacts/metrics/exp03_robustness/EXP-03_<run_id>.json \
+  --output reports/summaries/robustness_summary.md
 ```
+
+Replace `<run_id>` with the UUID printed by `run_robustness_eval.py`. Pick `--model-artifact` from the Phase 3 leaderboard (e.g. top `EXP-01_*_hybrid` under `artifacts/models/`).
+
+The run JSON and `robustness_summary.md` also report **restricted OOD protocols**:
+
+- **Shared-class subset**: OOD accuracy only on the 7 classes present in both HaGRID and LeapGestRecog (excludes `L`, `Down`, `Palm_Moved`).
+- **Masked unknown**: predictions outside the 10-class OOD vocabulary map to `unknown`.
+- **Masked shared argmax** (requires `--include-proba`): each prediction is the argmax over `predict_proba` restricted to the 7 shared classes.
+
+**Expected outputs:**
+
+- `artifacts/metrics/exp03_robustness/EXP-03_<run_id>.json` — run record with in-domain/OOD metrics and robustness drop
+- `reports/tables/EXP-03_<run_id>_in_domain_predictions.csv` and `*_ood_predictions.csv`
+- `artifacts/metrics/exp03_robustness/EXP-03_<run_id>_predictions.csv` — combined predictions
+- `reports/tables/EXP-03_<run_id>_per_class_drop.csv` and `reports/figures/exp03_per_class_drop.png`
+- `reports/tables/EXP-03_<run_id>_ood_per_class_accuracy.csv` and `reports/figures/EXP-03_<run_id>_ood_per_class_accuracy.png` — OOD 10-class per-class accuracy
+- `reports/tables/EXP-03_<run_id>_ood_confusion.csv` and `reports/figures/EXP-03_<run_id>_ood_confusion.png` — OOD confusion matrix (canonical vocab + `_other_` column for train-only predictions)
+- `reports/summaries/robustness_summary.md` — deployment-oriented summary
+- `reports/summaries/exp03_failure_gallery.md` — qualitative OOD error index
 
 ### 5. Real-time deployment (Phase 5, planned)
 

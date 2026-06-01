@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+import re
 from collections import Counter
 from typing import Any
 
@@ -145,6 +147,76 @@ def apply_label_normalization(
         )
         normalized.append(row)
     return normalized
+
+
+def normalize_sample_gesture_label(
+    sample: dict[str, Any],
+    *,
+    label_aliases: dict[str, str] | None = None,
+    canonical_labels: list[str] | None = None,
+    align_to_canonical: bool = False,
+) -> dict[str, Any]:
+    """
+    Ensure *gesture_label* on a manifest or feature row uses the canonical vocabulary.
+
+    Uses ``raw_gesture_label`` when present; otherwise infers LeapGestRecog gesture
+    folders from ``capture_context.relative_path`` or ``image_path``.
+    """
+    row = dict(sample)
+    dataset_name = str(row.get("dataset_name", ""))
+    raw = row.get("raw_gesture_label") or row.get("gesture_label", "")
+    raw_str = str(raw).strip()
+
+    if dataset_name == "leapgestrecog" and (
+        not _looks_like_leapgest_gesture_token(raw_str) or _LEAPGEST_SUBJECT_ID.match(raw_str)
+    ):
+        inferred = _infer_leapgest_gesture_from_paths(row)
+        if inferred:
+            raw_str = inferred
+            row["raw_gesture_label"] = inferred
+
+    row["raw_gesture_label"] = raw_str
+    row["gesture_label"] = normalize_label(
+        raw_str,
+        dataset_name or "leapgestrecog",
+        label_aliases=label_aliases,
+        canonical_labels=canonical_labels,
+        align_to_canonical=align_to_canonical,
+    )
+    return row
+
+
+_LEAPGEST_GESTURE_TOKEN = re.compile(r"^\d{2}_[a-z0-9_]+$", re.IGNORECASE)
+_LEAPGEST_SUBJECT_ID = re.compile(r"^\d{2}$")
+_LEAPGEST_GESTURE_IN_PATH = re.compile(r"/(\d{2}_[a-z0-9_]+)/", re.IGNORECASE)
+
+
+def _looks_like_leapgest_gesture_token(token: str) -> bool:
+    stripped = token.strip()
+    return bool(_LEAPGEST_GESTURE_TOKEN.match(stripped)) or stripped.lower() in _LEAPGEST_TO_CANONICAL
+
+
+def _infer_leapgest_gesture_from_paths(sample: dict[str, Any]) -> str | None:
+    """Read ``01_palm``-style folder names from image or capture_context paths."""
+    candidates: list[str] = []
+    capture = sample.get("capture_context") or {}
+    if isinstance(capture, str):
+        try:
+            capture = json.loads(capture)
+        except json.JSONDecodeError:
+            capture = {}
+    rel = capture.get("relative_path") if isinstance(capture, dict) else None
+    if rel:
+        candidates.append(str(rel))
+    image_path = sample.get("image_path")
+    if image_path:
+        candidates.append(str(image_path))
+
+    for path in candidates:
+        match = _LEAPGEST_GESTURE_IN_PATH.search(path.replace("\\", "/"))
+        if match:
+            return match.group(1)
+    return None
 
 
 def observed_labels(samples: list[dict[str, Any]]) -> list[str]:

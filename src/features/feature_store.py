@@ -6,6 +6,7 @@ import hashlib
 import json
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
 
@@ -293,3 +294,189 @@ def vector_from_record(record: dict[str, Any]) -> np.ndarray:
     if inline is None:
         raise ValueError(f"Record {record.get('sample_id')} has no vector_inline")
     return np.asarray(inline, dtype=np.float64).reshape(-1)
+
+
+_MATRIX_BATCH_COLUMNS = (
+    "sample_id",
+    "dataset_name",
+    "gesture_label",
+    "feature_family",
+    "feature_version",
+    "vector_inline",
+    "quality_flags",
+    "extraction_ok",
+)
+
+
+def _dataframe_batch_to_records(df: pd.DataFrame) -> list[dict[str, Any]]:
+    records = _deserialize_from_storage(df.to_dict(orient="records"))
+    for record in records:
+        inline = record.get("vector_inline")
+        if isinstance(inline, np.ndarray):
+            record["vector_inline"] = inline.tolist()
+    return records
+
+
+def _should_filter_invalid_rows(records: list[dict[str, Any]]) -> bool:
+    if not records:
+        return False
+    family = str(records[0].get("feature_family", ""))
+    return family in ("geometric", "keypoints_raw") or "hybrid" in family
+
+
+def iter_feature_matrix_batches(
+    path: str | Path,
+    *,
+    batch_size: int = 512,
+    sample_ids: set[str] | list[str] | None = None,
+    exclude_invalid: bool = True,
+) -> Iterator[list[dict[str, Any]]]:
+    """
+    Yield feature rows in bounded-memory batches from a Parquet matrix.
+
+    Falls back to loading the full matrix when PyArrow is unavailable or the
+    file is not Parquet.
+    """
+    file_path = Path(path)
+    if not file_path.is_file():
+        raise FileNotFoundError(f"Feature matrix not found: {file_path}")
+
+    id_set = set(sample_ids) if sample_ids is not None else None
+
+    if file_path.suffix.lower() != ".parquet":
+        table = load_feature_matrix(file_path, exclude_invalid=exclude_invalid)
+        records = table.records
+        if id_set is not None:
+            records = [r for r in records if str(r["sample_id"]) in id_set]
+        for offset in range(0, len(records), batch_size):
+            chunk = records[offset : offset + batch_size]
+            if chunk:
+                yield chunk
+        return
+
+    try:
+        import pyarrow.parquet as pq
+    except ImportError:
+        _logger.warning(
+            "PyArrow not installed; loading full feature matrix %s (high memory use)",
+            file_path,
+        )
+        table = load_feature_matrix(file_path, exclude_invalid=exclude_invalid)
+        records = table.records
+        if id_set is not None:
+            records = [r for r in records if str(r["sample_id"]) in id_set]
+        for offset in range(0, len(records), batch_size):
+            chunk = records[offset : offset + batch_size]
+            if chunk:
+                yield chunk
+        return
+
+    parquet_file = pq.ParquetFile(file_path)
+    available = set(parquet_file.schema_arrow.names)
+    columns = [name for name in _MATRIX_BATCH_COLUMNS if name in available]
+
+    for batch in parquet_file.iter_batches(batch_size=batch_size, columns=columns):
+        records = _dataframe_batch_to_records(batch.to_pandas())
+        if id_set is not None:
+            records = [r for r in records if str(r["sample_id"]) in id_set]
+        if exclude_invalid and _should_filter_invalid_rows(records):
+            records, _ = filter_invalid_geometric_feature_records(records)
+        if records:
+            yield records
+
+
+def sync_gesture_labels_from_manifest(
+    matrix_path: str | Path,
+    manifest_path: str | Path,
+    *,
+    batch_size: int = 4096,
+) -> int:
+    """
+    Rewrite ``gesture_label`` (and ``raw_gesture_label`` when present) in a feature matrix
+    using canonical labels from a Phase 1 manifest.
+
+    Returns the number of rows updated.
+    """
+    from src.data.dataset_summary import load_manifest
+    from src.data.label_mapper import normalize_sample_gesture_label
+
+    matrix_file = Path(matrix_path)
+    if not matrix_file.is_file():
+        raise FileNotFoundError(f"Feature matrix not found: {matrix_file}")
+
+    manifest_rows = load_manifest(manifest_path)
+    label_by_id: dict[str, str] = {}
+    raw_by_id: dict[str, str] = {}
+    for row in manifest_rows:
+        sid = str(row.get("sample_id", ""))
+        if not sid:
+            continue
+        normalized = normalize_sample_gesture_label(row)
+        label_by_id[sid] = str(normalized["gesture_label"])
+        raw_by_id[sid] = str(normalized.get("raw_gesture_label", normalized["gesture_label"]))
+
+    if matrix_file.suffix.lower() != ".parquet":
+        table = load_feature_matrix(matrix_file, exclude_invalid=False)
+        updated = 0
+        for record in table.records:
+            sid = str(record["sample_id"])
+            if sid in label_by_id:
+                record["gesture_label"] = label_by_id[sid]
+                record["raw_gesture_label"] = raw_by_id[sid]
+                updated += 1
+        save_feature_matrix(table.records, matrix_file)
+        return updated
+
+    try:
+        import pyarrow as pa
+        import pyarrow.parquet as pq
+    except ImportError as exc:
+        raise ImportError("PyArrow is required to sync labels in Parquet feature matrices") from exc
+
+    parquet_file = pq.ParquetFile(matrix_file)
+    writer: Any = None
+    updated = 0
+    tmp_path = matrix_file.with_suffix(".labels_sync.parquet")
+
+    for batch in parquet_file.iter_batches(batch_size=batch_size):
+        df = batch.to_pandas()
+        if "sample_id" not in df.columns:
+            raise ValueError(f"Feature matrix missing sample_id column: {matrix_file}")
+        mask = df["sample_id"].astype(str).isin(label_by_id)
+        if mask.any():
+            df.loc[mask, "gesture_label"] = df.loc[mask, "sample_id"].astype(str).map(label_by_id)
+            if "raw_gesture_label" in df.columns:
+                df.loc[mask, "raw_gesture_label"] = df.loc[mask, "sample_id"].astype(str).map(raw_by_id)
+            updated += int(mask.sum())
+        table = pa.Table.from_pandas(df, preserve_index=False)
+        if writer is None:
+            writer = pq.ParquetWriter(tmp_path, table.schema)
+        writer.write_table(table)
+
+    if writer is None:
+        return 0
+    writer.close()
+    tmp_path.replace(matrix_file)
+    return updated
+
+
+def collect_gesture_labels_from_matrix(
+    path: str | Path,
+    *,
+    sample_ids: set[str] | list[str] | None = None,
+    exclude_invalid: bool = True,
+    batch_size: int = 2048,
+) -> set[str]:
+    """Collect unique gesture labels by scanning a matrix without full materialization."""
+    labels: set[str] = set()
+    for batch in iter_feature_matrix_batches(
+        path,
+        batch_size=batch_size,
+        sample_ids=sample_ids,
+        exclude_invalid=exclude_invalid,
+    ):
+        for record in batch:
+            label = record.get("gesture_label")
+            if label is not None:
+                labels.add(str(label))
+    return labels
