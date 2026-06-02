@@ -12,7 +12,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from src.common.path_manager import resolve_project_root
+from src.common.path_manager import resolve_metrics_dir, resolve_project_root
 from src.common.run_registry import create_run_record, save_run_record
 from src.evaluation.domain_report import (
     build_domain_shift_report,
@@ -358,12 +358,12 @@ def run_robustness_eval(
 
     outputs_cfg = experiment_config.get("outputs", {})
     reports_dir = Path(outputs_cfg.get("reports_dir", "reports/tables"))
-    metrics_subdir = outputs_cfg.get("metrics_dir")
-    if metrics_subdir:
-        metrics_dir = root / metrics_subdir
-    else:
-        metrics_dir = root / "artifacts" / "metrics"
-    metrics_dir.mkdir(parents=True, exist_ok=True)
+    metrics_dir = resolve_metrics_dir(
+        experiment_id,
+        config=experiment_config,
+        project_root=root,
+        create=True,
+    )
     reports_path = root / reports_dir
     reports_path.mkdir(parents=True, exist_ok=True)
     figures_dir = root / "reports" / "figures"

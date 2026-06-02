@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from src.common.path_manager import resolve_project_root
+from src.common.path_manager import build_metrics_record_path, resolve_project_root
 from src.common.run_registry import create_run_record, save_run_record
 from src.evaluation.metrics import compute_classification_metrics, compute_efficiency_metrics
 from src.evaluation.report_builder import (
@@ -168,6 +168,16 @@ def run_single_experiment(
         "confusion_matrix_csv": str(cm_csv),
         "confusion_matrix_png": str(cm_png),
     }
-    metrics_path = save_run_record(run_record)
+    metrics_path = save_run_record(
+        run_record,
+        output_path=str(
+            build_metrics_record_path(
+                experiment_id,
+                run_record["run_id"],
+                config=experiment_config,
+                project_root=root,
+            )
+        ),
+    )
     run_record["outputs"]["metrics_path"] = str(metrics_path)
     return run_record

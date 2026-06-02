@@ -210,7 +210,10 @@ def test_format_leaderboard_markdown_table() -> None:
 def test_end_to_end_runner(synthetic_feature_artifacts: Path, tmp_path: Path) -> None:
     exp_config = {
         "experiment_id": "EXP-01",
-        "outputs": {"reports_dir": "reports/tables"},
+        "outputs": {
+            "reports_dir": "reports/tables",
+            "metrics_dir": "artifacts/metrics/exp01_model_comparison",
+        },
         "models": {"config": "configs/models/baselines.yaml"},
     }
     baselines = load_config(str(PROJECT_ROOT / "configs/models/baselines.yaml"))
@@ -225,5 +228,6 @@ def test_end_to_end_runner(synthetic_feature_artifacts: Path, tmp_path: Path) ->
     assert Path(record["artifacts"]["model_path"]).exists()
     metrics_path = Path(record["outputs"]["metrics_path"])
     assert metrics_path.exists()
+    assert "exp01_model_comparison" in metrics_path.as_posix()
     loaded = json.loads(metrics_path.read_text(encoding="utf-8"))
     assert loaded["metrics"]["accuracy"] >= 0.0

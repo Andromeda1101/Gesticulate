@@ -40,8 +40,11 @@ def resolve_feature_matrix_path(
     root = Path(project_root) if project_root else resolve_project_root()
     if feature_family in FEATURE_FAMILY_MAP:
         _, stem = FEATURE_FAMILY_MAP[feature_family]
-        # Allow dataset override by replacing prefix
-        if not stem.startswith(dataset_name):
+        default_prefix = "hagrid_subset"
+        if dataset_name != default_prefix and stem.startswith(f"{default_prefix}_"):
+            suffix = stem[len(default_prefix) + 1 :]
+            stem = f"{dataset_name}_{suffix}"
+        elif not stem.startswith(dataset_name):
             parts = stem.split("_", 1)
             if len(parts) == 2 and parts[0] != dataset_name:
                 stem = f"{dataset_name}_{parts[1]}"

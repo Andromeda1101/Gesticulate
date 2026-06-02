@@ -9,6 +9,28 @@ datasets:
 features:
   config: configs/features/default.yaml
   feature_family: hybrid
+  feature_version: v1
+
+# Batch OOD comparison (scripts/run_robustness_suite.py)
+robustness_suite:
+  dataset_name: hagrid_subset
+  ood_dataset_name: leapgestrecog
+  feature_version: v1
+  train_experiment_id: EXP-01
+  feature_families:
+    - keypoints_only
+    - hog_only
+    - hybrid
+  algorithms:
+    - knn
+    - svm
+    - decision_tree
+    - random_forest
+    - naive_bayes
+    - logistic_regression
+    - mlp
+    - cnn
+    - lstm
 
 models:
   config: configs/models/baselines.yaml

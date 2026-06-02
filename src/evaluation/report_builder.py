@@ -258,12 +258,26 @@ def export_confusion_matrix_csv(
     return path
 
 
-def load_run_records(metrics_dir: str | Path) -> list[dict[str, Any]]:
-    """Load completed run JSON files from a metrics directory."""
+def load_run_records(
+    metrics_dir: str | Path,
+    *,
+    recursive: bool = True,
+) -> list[dict[str, Any]]:
+    """Load completed run JSON files from a metrics directory (optionally recursive)."""
     metrics_dir = Path(metrics_dir)
+    if not metrics_dir.exists():
+        return []
+
+    pattern = "**/*.json" if recursive else "*.json"
     records: list[dict[str, Any]] = []
-    for path in sorted(metrics_dir.glob("*.json")):
+    for path in sorted(metrics_dir.glob(pattern)):
+        if not path.is_file():
+            continue
         data = json.loads(path.read_text(encoding="utf-8"))
+        if not isinstance(data, dict):
+            continue
+        if "run_id" not in data or "experiment_id" not in data:
+            continue
         if data.get("status") == "completed":
             records.append(data)
     return records

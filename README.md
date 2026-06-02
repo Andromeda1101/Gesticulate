@@ -167,7 +167,7 @@ Expected outputs:
 
 - `artifacts/models/{experiment_id}_{algorithm}_{feature_family}.joblib` (or `.pt` for deep models)
 - `artifacts/models/{experiment_id}_{algorithm}_{feature_family}.meta.json`
-- `artifacts/metrics/{experiment_id}_{run_id}.json`
+- `artifacts/metrics/exp0N_<experiment_slug>/{experiment_id}_{run_id}.json`
 - `reports/tables/*_leaderboard.csv` and `reports/figures/*_confusion.png`
 
 ### 4. Robustness evaluation (EXP-03)
@@ -175,7 +175,14 @@ Expected outputs:
 Train on HaGRID , then evaluate the champion model on in-domain **test** split and LeapGestRecog OOD features without retraining (`configs/experiments/exp03_robustness.yaml`):
 
 ```bash
-# WSL-safe defaults: streamed parquet batches, no predict_proba, single-threaded BLAS
+# EXP-03 suite: all feature families × models
+OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 \
+python scripts/run_robustness_suite.py \
+  --config configs/experiments/exp03_robustness.yaml \
+  --batch-size 128 \
+  --skip-missing
+
+# Single champion run (WSL-safe defaults: streamed parquet batches, no predict_proba)
 OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 \
 python scripts/run_robustness_eval.py \
   --model-artifact artifacts/models/EXP-01_svm_hybrid.joblib \
@@ -222,6 +229,7 @@ The run JSON and `robustness_summary.md` also report **restricted OOD protocols*
 - `reports/tables/EXP-03_<run_id>_ood_confusion.csv` and `reports/figures/EXP-03_<run_id>_ood_confusion.png` — OOD confusion matrix (canonical vocab + `_other_` column for train-only predictions)
 - `reports/summaries/robustness_summary.md` — deployment-oriented summary
 - `reports/summaries/exp03_failure_gallery.md` — qualitative OOD error index
+- `reports/tables/exp03_robustness_suite_leaderboard.csv` — batch suite comparison (all feature × model runs)
 
 ### 5. Real-time deployment (Phase 5, planned)
 

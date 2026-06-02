@@ -22,7 +22,16 @@ from src.evaluation.report_builder import (
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Export benchmark summary report")
-    parser.add_argument("--input-dir", default="artifacts/metrics")
+    parser.add_argument(
+        "--input-dir",
+        default="artifacts/metrics",
+        help="Metrics root or experiment subdir (loads *.json recursively by default)",
+    )
+    parser.add_argument(
+        "--no-recursive",
+        action="store_true",
+        help="Only load JSON files directly under --input-dir",
+    )
     parser.add_argument(
         "--output",
         default="reports/summaries/benchmark_summary.md",
@@ -34,7 +43,7 @@ def parse_args() -> argparse.Namespace:
 def main() -> int:
     args = parse_args()
     input_dir = PROJECT_ROOT / args.input_dir
-    records = load_run_records(input_dir)
+    records = load_run_records(input_dir, recursive=not args.no_recursive)
     if args.experiment_id:
         records = [r for r in records if r.get("experiment_id") == args.experiment_id]
 

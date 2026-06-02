@@ -25,5 +25,5 @@ metrics:
 
 outputs:
   runtime_dir: artifacts/runtime
-  metrics_dir: artifacts/metrics
+  metrics_dir: artifacts/metrics/exp04_realtime_deployment
   reports_dir: reports/summaries

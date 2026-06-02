@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from src.common.path_manager import build_artifact_path
+from src.common.path_manager import build_metrics_record_path
 
 
 def _config_fingerprint(config: dict[str, Any]) -> str:
@@ -46,10 +46,10 @@ def create_run_record(
         },
         "outputs": {
             "metrics_path": str(
-                build_artifact_path(
-                    "metrics",
-                    f"{experiment_id}_{run_id}",
-                    "json",
+                build_metrics_record_path(
+                    experiment_id,
+                    run_id,
+                    config=config,
                     create_parents=False,
                 )
             ),
@@ -63,7 +63,13 @@ def save_run_record(record: dict[str, Any], output_path: str | None = None) -> P
     if output_path is None:
         experiment_id = record["experiment_id"]
         run_id = record["run_id"]
-        path = build_artifact_path("metrics", f"{experiment_id}_{run_id}", "json")
+        config = record.get("config_snapshot")
+        path = build_metrics_record_path(
+            experiment_id,
+            run_id,
+            config=config,
+            create_parents=True,
+        )
     else:
         path = Path(output_path)
         path.parent.mkdir(parents=True, exist_ok=True)

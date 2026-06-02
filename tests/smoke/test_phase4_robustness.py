@@ -255,6 +255,55 @@ def test_inference_roundtrip(tiny_robustness_artifacts: dict) -> None:
     assert len(result["y_pred"]) == len(table.records)
 
 
+def test_resolve_metrics_dir_uses_experiment_slug() -> None:
+    from src.common.path_manager import resolve_metrics_dir
+
+    path = resolve_metrics_dir("EXP-03", config=None, create=False)
+    assert path.as_posix().endswith("artifacts/metrics/exp03_robustness")
+
+
+def test_load_run_records_recursive(tmp_path: Path) -> None:
+    from src.evaluation.report_builder import load_run_records
+
+    sub = tmp_path / "exp03_robustness"
+    sub.mkdir(parents=True)
+    record = {
+        "run_id": "abc",
+        "experiment_id": "EXP-03",
+        "status": "completed",
+        "metrics": {},
+    }
+    (sub / "EXP-03_abc.json").write_text(json.dumps(record), encoding="utf-8")
+    (tmp_path / "noise.json").write_text(json.dumps({"foo": 1}), encoding="utf-8")
+
+    flat = load_run_records(tmp_path, recursive=False)
+    assert flat == []
+
+    nested = load_run_records(tmp_path, recursive=True)
+    assert len(nested) == 1
+    assert nested[0]["run_id"] == "abc"
+
+
+def test_iter_robustness_suite_specs_explicit_pair() -> None:
+    from src.evaluation.robustness_suite import iter_robustness_suite_specs
+
+    config = {
+        "features": {"feature_version": "v1"},
+        "robustness_suite": {
+            "dataset_name": "hagrid_subset",
+            "ood_dataset_name": "leapgestrecog",
+            "train_experiment_id": "EXP-01",
+            "pairs": [{"algorithm": "svm", "feature_family": "hybrid"}],
+        },
+    }
+    specs = list(iter_robustness_suite_specs(config, project_root=PROJECT_ROOT))
+    assert len(specs) == 1
+    assert specs[0].algorithm == "svm"
+    assert specs[0].feature_family == "hybrid"
+    assert specs[0].in_domain_features.name == "hagrid_subset_hybrid_v1.parquet"
+    assert specs[0].ood_features.name == "leapgestrecog_hybrid_v1.parquet"
+
+
 def test_end_to_end_robustness_runner(tiny_robustness_artifacts: dict) -> None:
     from src.evaluation.robustness_runner import run_robustness_eval
 
@@ -278,6 +327,7 @@ def test_end_to_end_robustness_runner(tiny_robustness_artifacts: dict) -> None:
     assert "shared_subset" in record["ood_eval_protocols"]
     metrics_path = Path(record["outputs"]["metrics_path"])
     assert metrics_path.exists()
+    assert "exp03_robustness" in metrics_path.as_posix()
     assert Path(record["artifacts"]["ood_predictions_csv"]).exists()
     assert Path(record["artifacts"]["ood_per_class_accuracy_csv"]).exists()
     assert Path(record["artifacts"]["ood_confusion_matrix_csv"]).exists()
