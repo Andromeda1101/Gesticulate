@@ -3,17 +3,7 @@ root_path: data/raw/hagrid/HaGRIDv2_dataset_512
 description: HaGRID subset as primary in-domain dataset for training and evaluation
 
 # Reference vocabulary for reports; does not filter samples (see label_filter).
-label_vocabulary:
-  - Palm
-  - L
-  - Fist
-  - Fist_Moved
-  - Thumb
-  - Index
-  - OK
-  - Palm_Moved
-  - C
-  - Down
+label_vocabulary: []
 
 split_strategy:
   method: stratified
@@ -28,17 +18,8 @@ sampling:
   max_samples_per_class: 500
   shuffle: true
 
-# HaGRID-native names -> canonical gesture names (additional overrides)
-label_aliases:
-  palm: Palm
-  fist: Fist
-  like: Thumb
-  ok: OK
-  one: Index
-  rock: C
-  two_up: Thumb
-  two_up_inverted: Thumb
-  stop: Fist_Moved
+# HaGRID folder names are kept as-is (native labels). No canonical remapping.
+label_aliases: {}
 
 capture_context:
   source: in_the_wild

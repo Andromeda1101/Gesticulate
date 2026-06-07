@@ -105,7 +105,6 @@ def main() -> int:
         protocol_summary["ood_masked_shared_argmax_accuracy"] = masked_argmax["ood"].get(
             "accuracy"
         )
-
     manifest = {
         "run_id": record.get("run_id"),
         "status": record.get("status"),

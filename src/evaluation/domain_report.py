@@ -59,7 +59,7 @@ def build_domain_shift_report(run_inputs: dict[str, Any]) -> dict[str, Any]:
         "assumptions": [
             "Zero-shot transfer: model trained on HaGRID subset, evaluated on LeapGestRecog without fine-tuning.",
             "Same hybrid feature family and extraction config required for both domains.",
-            "Gesture labels mapped to a shared canonical vocabulary at manifest time.",
+            "Gesture labels normalized to HaGRID-native names at manifest time.",
         ],
         "schema_validation": schema,
         "in_domain_metrics": id_metrics,
@@ -82,7 +82,7 @@ def export_ood_per_class_accuracy_figure(
     title: str = "OOD per-class accuracy",
     dpi: int = 120,
 ) -> Path:
-    """Bar chart of per-class accuracy on the OOD canonical vocabulary."""
+    """Bar chart of per-class accuracy on the OOD HaGRID label vocabulary."""
     path = Path(output_path)
     path.parent.mkdir(parents=True, exist_ok=True)
     if per_class_df.empty:
@@ -197,7 +197,7 @@ def format_domain_shift_markdown(report: dict[str, Any]) -> str:
         lines.extend(
             [
                 "",
-                "## OOD per-class accuracy (canonical 10-class vocabulary)",
+                "## OOD per-class accuracy (HaGRID label vocabulary)",
                 "",
                 "| Gesture | N | Correct | Accuracy |",
                 "| --- | ---: | ---: | ---: |",
@@ -222,8 +222,8 @@ def format_domain_shift_markdown(report: dict[str, Any]) -> str:
                 "",
                 "## OOD evaluation protocols (restricted label space)",
                 "",
-                "These metrics address label-space mismatch between the 32-class HaGRID "
-                "classifier and the 10-class LeapGestRecog vocabulary.",
+                "These metrics address label-space mismatch when the HaGRID classifier "
+                "predicts classes outside the OOD evaluation vocabulary.",
                 "",
             ]
         )

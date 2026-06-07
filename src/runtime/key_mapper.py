@@ -16,13 +16,30 @@ except ImportError:  # pragma: no cover
 
 _keyboard: Any | None = None
 
-# Baseline mapping from project overview / runtime config defaults.
+# HaGRID-native gesture labels expected from trained classifiers.
 DEFAULT_KEYMAP: dict[str, str] = {
-    "Palm": "space",
-    "Fist": "enter",
-    "Thumb_Up": "up",
-    "Peace": "down",
+    "palm": "space",
+    "fist": "enter",
+    "like": "up",
+    "peace": "down",
 }
+
+# Runtime aliases before keymap lookup (legacy / alternate model outputs).
+_RUNTIME_GESTURE_ALIASES: dict[str, str] = {
+    "thumb": "like",
+    "thumb_up": "like",
+    "thumbup": "like",
+}
+
+
+def _normalize_gesture_key(gesture_label: str) -> str:
+    return gesture_label.strip().lower().replace("-", "_").replace(" ", "_")
+
+
+def normalize_runtime_gesture_label(gesture_label: str) -> str:
+    """Map model output labels to HaGRID-native names used by the runtime keymap."""
+    key = _normalize_gesture_key(gesture_label)
+    return _RUNTIME_GESTURE_ALIASES.get(key, key)
 
 _NAMED_KEYS: dict[str, Any] = {}
 
@@ -81,12 +98,14 @@ def dispatch_key_action(
 
     Real OS events require ``enable_dispatch=True`` and ``dry_run=False``.
     """
-    mapped_key = keymap.get(gesture_label)
+    normalized_label = normalize_runtime_gesture_label(gesture_label)
+    mapped_key = keymap.get(normalized_label) or keymap.get(gesture_label)
     if mapped_key is None:
         return {
             "emitted": False,
             "reason": "unmapped_gesture",
             "gesture_label": gesture_label,
+            "normalized_gesture_label": normalized_label,
             "mapped_key": None,
             "dry_run": dry_run,
         }
@@ -96,6 +115,7 @@ def dispatch_key_action(
             "emitted": False,
             "reason": "dry_run" if dry_run else "dispatch_disabled",
             "gesture_label": gesture_label,
+            "normalized_gesture_label": normalized_label,
             "mapped_key": mapped_key,
             "dry_run": True,
             "would_emit": True,
@@ -114,6 +134,7 @@ def dispatch_key_action(
         "emitted": True,
         "reason": "dispatched",
         "gesture_label": gesture_label,
+        "normalized_gesture_label": normalized_label,
         "mapped_key": mapped_key,
         "dry_run": False,
     }

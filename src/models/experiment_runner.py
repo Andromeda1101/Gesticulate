@@ -13,7 +13,7 @@ from src.evaluation.report_builder import (
     export_confusion_matrix_csv,
     plot_confusion_matrix_from_csv,
 )
-from src.features.feature_store import load_feature_matrix
+from src.features.feature_store import FeatureTable, load_feature_matrix
 from src.models.exporter import export_model
 from src.models.feature_resolver import (
     manifest_feature_family,
@@ -55,6 +55,7 @@ def run_single_experiment(
     dataset_name: str = "hagrid_subset",
     feature_version: str = "v1",
     dry_run: bool = False,
+    preloaded_table: FeatureTable | None = None,
 ) -> dict[str, Any]:
     """Execute one train/eval run and persist artifacts."""
     root = resolve_project_root()
@@ -76,7 +77,7 @@ def run_single_experiment(
     split_path = resolve_split_path(dataset_name, project_root=root)
     train_ids, val_ids, _ = _load_splits(split_path)
 
-    table = load_feature_matrix(matrix_path)
+    table = preloaded_table if preloaded_table is not None else load_feature_matrix(matrix_path)
     expected_family = manifest_feature_family(feature_family)
     records = [
         r

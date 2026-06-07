@@ -16,7 +16,7 @@ robustness_suite:
   dataset_name: hagrid_subset
   ood_dataset_name: leapgestrecog
   feature_version: v1
-  train_experiment_id: EXP-01
+  train_experiment_id: EXP-02
   feature_families:
     - keypoints_only
     - hog_only

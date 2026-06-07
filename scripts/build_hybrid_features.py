@@ -94,7 +94,7 @@ def main() -> int:
         )
 
     kp_family = str(kp_by_id[kp_ids[0]].get("feature_family", "geometric"))
-    hog_family = str(hog_by_id[hog_ids[0]].get("feature_family", "hog"))
+    hog_family = str(hog_by_id[kp_ids[0]].get("feature_family", "hog"))
     family_order = [kp_family, hog_family]
 
     feature_version = str(config.get("feature_version", "v1"))

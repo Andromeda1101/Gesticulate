@@ -16,7 +16,7 @@ from src.data.adapters.hagrid_adapter import index_samples as index_hagrid
 from src.data.adapters.leapgestrecog_adapter import index_samples as index_leap
 from src.data.dataset_summary import load_manifest, save_manifest, summarize_dataset
 from src.data.label_mapper import (
-    CANONICAL_GESTURE_LABELS,
+    LEAPGEST_MAPPED_HAGRID_LABELS,
     apply_label_normalization,
     normalize_label,
     normalize_sample_gesture_label,
@@ -93,18 +93,18 @@ def test_leapgestrecog_nested_subject_layout(tmp_path: Path) -> None:
     assert samples[0]["subject_id"] == "00"
 
     normalized = apply_label_normalization(samples, "leapgestrecog")
-    assert normalized[0]["gesture_label"] == "Palm"
+    assert normalized[0]["gesture_label"] == "stop"
 
 
 def test_leapgestrecog_label_normalization(leapgest_tree: Path) -> None:
     raw = index_leap(str(leapgest_tree))
     normalized = apply_label_normalization(raw, "leapgestrecog")
     labels = {s["gesture_label"] for s in normalized}
-    assert "Palm" in labels
-    assert "Fist" in labels
-    assert "Thumb" in labels
-    assert "OK" in labels
-    assert "Down" in labels
+    assert "stop" in labels
+    assert "palm" in labels
+    assert "fist" in labels
+    assert "like" in labels
+    assert "ok" in labels
     assert "01_palm" not in labels
 
 
@@ -132,9 +132,9 @@ def test_hagrid_label_normalization_without_align(hagrid_folder_tree: Path) -> N
     raw = index_hagrid(str(hagrid_folder_tree), {"max_samples_per_class": 10})
     normalized = apply_label_normalization(raw, "hagrid_subset")
     by_raw = {s["raw_gesture_label"]: s["gesture_label"] for s in normalized}
-    assert by_raw["palm"] == "Palm"
-    assert by_raw["fist"] == "Fist"
-    assert by_raw["like"] == "Thumb"
+    assert by_raw["palm"] == "palm"
+    assert by_raw["fist"] == "fist"
+    assert by_raw["like"] == "like"
     assert by_raw["peace"] == "peace"
     assert by_raw["mute"] == "mute"
 
@@ -147,9 +147,9 @@ def test_hagrid_alignment_with_align_to_canonical(hagrid_folder_tree: Path) -> N
         align_to_canonical=True,
     )
     by_raw = {s["raw_gesture_label"]: s["gesture_label"] for s in normalized}
-    assert by_raw["palm"] == "Palm"
-    assert by_raw["peace"] == "Peace"
-    assert by_raw["mute"] == "Mute"
+    assert by_raw["palm"] == "palm"
+    assert by_raw["peace"] == "peace"
+    assert by_raw["mute"] == "mute"
 
 
 def test_hagrid_annotation_indexing(hagrid_annotation_tree: Path) -> None:
@@ -170,18 +170,21 @@ def test_normalize_sample_gesture_label_from_image_path() -> None:
     }
     fixed = normalize_sample_gesture_label(sample)
     assert fixed["raw_gesture_label"] == "01_palm"
-    assert fixed["gesture_label"] == "Palm"
+    assert fixed["gesture_label"] == "stop"
 
 
 def test_label_normalization_aliases() -> None:
-    assert normalize_label("05_thumb", "leapgestrecog") == "Thumb"
-    assert normalize_label("like", "hagrid_subset") == "Thumb"
-    assert normalize_label("like", "hagrid_subset", align_to_canonical=True) == "Thumb"
+    assert normalize_label("01_palm", "leapgestrecog") == "stop"
+    assert normalize_label("10_down", "leapgestrecog") == "palm"
+    assert normalize_label("05_thumb", "leapgestrecog") == "like"
+    assert normalize_label("04_fist_moved", "leapgestrecog") == "fist"
+    assert normalize_label("02_l", "leapgestrecog") == "thumb_index"
+    assert normalize_label("like", "hagrid_subset") == "like"
 
 
 def test_validate_label_coverage_reference_only(leapgest_tree: Path) -> None:
     samples = apply_label_normalization(index_leap(str(leapgest_tree)), "leapgestrecog")
-    coverage = validate_label_coverage(samples, list(CANONICAL_GESTURE_LABELS))
+    coverage = validate_label_coverage(samples, list(LEAPGEST_MAPPED_HAGRID_LABELS))
     assert coverage["total_samples"] == 10
     assert "outside_reference" in coverage
 
@@ -215,7 +218,7 @@ def test_manifest_roundtrip(tmp_path: Path, leapgest_tree: Path) -> None:
     save_manifest(samples, manifest_path)
     loaded = load_manifest(manifest_path)
     assert len(loaded) == len(samples)
-    summary = summarize_dataset(loaded, reference_labels=list(CANONICAL_GESTURE_LABELS))
+    summary = summarize_dataset(loaded, reference_labels=list(LEAPGEST_MAPPED_HAGRID_LABELS))
     assert summary["has_duplicate_sample_ids"] is False
     assert summary["missing_file_count"] == 0
 

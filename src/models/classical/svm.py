@@ -327,6 +327,7 @@ class SVMClassifier(BaseClassifier):
             dual_coef = alpha * y_binary
             self._binary_models.append(_BinarySMOModel(dual_coef=dual_coef, bias=b))
 
+        self._K_train = None
         self._is_fitted = True
         return self
 

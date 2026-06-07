@@ -405,7 +405,7 @@ def run_robustness_eval(
     ood_cm_png = plot_confusion_matrix_from_csv(
         ood_cm_csv,
         figures_dir / f"{prefix}_ood_confusion.png",
-        title=f"{experiment_id} OOD confusion ({algo}, canonical vocab)",
+        title=f"{experiment_id} OOD confusion ({algo}, HaGRID labels)",
     )
     ood_model_cm_csv = export_confusion_matrix_csv(
         ood_metrics["confusion_matrix"],

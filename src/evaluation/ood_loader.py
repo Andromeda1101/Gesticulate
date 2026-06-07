@@ -8,7 +8,7 @@ from typing import Any
 
 import pandas as pd
 
-from src.data.label_mapper import CANONICAL_GESTURE_LABELS, observed_labels
+from src.data.label_mapper import LEAPGEST_MAPPED_HAGRID_LABELS, observed_labels
 from src.features.feature_store import (
     FeatureTable,
     load_feature_matrix,
@@ -108,9 +108,9 @@ def validate_schema_compatibility(
     if train_label_set and test_label_set and not shared_labels:
         issues.append("no overlapping gesture labels between train and test domains")
 
-    canonical = set(CANONICAL_GESTURE_LABELS)
-    outside_canonical_train = sorted(train_label_set - canonical) if train_label_set else []
-    outside_canonical_test = sorted(test_label_set - canonical) if test_label_set else []
+    reference = set(LEAPGEST_MAPPED_HAGRID_LABELS)
+    outside_reference_train = sorted(train_label_set - reference) if train_label_set else []
+    outside_reference_test = sorted(test_label_set - reference) if test_label_set else []
 
     return {
         "compatible": len(issues) == 0,
@@ -124,9 +124,9 @@ def validate_schema_compatibility(
             "test_only": test_only,
             "n_shared": len(shared_labels),
         },
-        "outside_canonical": {
-            "train": outside_canonical_train,
-            "test": outside_canonical_test,
+        "outside_reference": {
+            "train": outside_reference_train,
+            "test": outside_reference_test,
         },
     }
 

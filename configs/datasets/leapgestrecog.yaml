@@ -4,16 +4,14 @@ description: LeapGestRecog static hand-gesture dataset for OOD cross-domain eval
 
 # Reference vocabulary for reports; does not filter samples (see label_filter).
 label_vocabulary:
-  - Palm
-  - L
-  - Fist
-  - Fist_Moved
-  - Thumb
-  - Index
-  - OK
-  - Palm_Moved
-  - C
-  - Down
+  - stop
+  - palm
+  - fist
+  - like
+  - one
+  - ok
+  - grip
+  - thumb_index
 
 split_strategy:
   method: fixed_eval
@@ -26,17 +24,18 @@ sampling:
   max_samples_per_class: null
   shuffle: true
 
+# LeapGestRecog folders are normalized to HaGRID-native labels at ingest time.
 label_aliases:
-  "01_palm": Palm
-  "02_l": L
-  "03_fist": Fist
-  "04_fist_moved": Fist_Moved
-  "05_thumb": Thumb
-  "06_index": Index
-  "07_ok": OK
-  "08_palm_moved": Palm_Moved
-  "09_c": C
-  "10_down": Down
+  "01_palm": stop
+  "02_l": thumb_index
+  "03_fist": fist
+  "04_fist_moved": fist
+  "05_thumb": like
+  "06_index": one
+  "07_ok": ok
+  "08_palm_moved": palm
+  "09_c": grip
+  "10_down": palm
 
 capture_context:
   source: static_images

@@ -19,7 +19,12 @@ from src.common.config_loader import load_config
 from src.features.extraction import expected_vector_dim
 from src.features.feature_combiner import concatenate_features
 from src.runtime.gesture_filter import GestureFilter
-from src.runtime.key_mapper import DEFAULT_KEYMAP, dispatch_key_action, load_keymap
+from src.runtime.key_mapper import (
+    DEFAULT_KEYMAP,
+    dispatch_key_action,
+    load_keymap,
+    normalize_runtime_gesture_label,
+)
 from src.runtime.model_runner import RuntimeModel
 from src.runtime.preprocess import extract_runtime_features, resolve_runtime_feature_family
 from src.runtime.session_logger import SessionLogger, log_runtime_event
@@ -103,9 +108,17 @@ def test_gesture_filter_consensus_and_debounce() -> None:
     assert filt.should_emit_action(much_later) is True
 
 
+def test_normalize_runtime_gesture_label_maps_thumb_to_like() -> None:
+    assert normalize_runtime_gesture_label("Thumb") == "like"
+    assert normalize_runtime_gesture_label("thumb") == "like"
+    assert normalize_runtime_gesture_label("thumb_up") == "like"
+    assert normalize_runtime_gesture_label("like") == "like"
+    assert normalize_runtime_gesture_label("palm") == "palm"
+
+
 def test_dispatch_dry_run_never_emits() -> None:
     result = dispatch_key_action(
-        "Palm",
+        "palm",
         DEFAULT_KEYMAP,
         dry_run=True,
         enable_dispatch=True,
@@ -115,9 +128,21 @@ def test_dispatch_dry_run_never_emits() -> None:
     assert result.get("would_emit") is True
 
 
+def test_dispatch_thumb_alias_uses_like_keymap() -> None:
+    result = dispatch_key_action(
+        "Thumb",
+        DEFAULT_KEYMAP,
+        dry_run=True,
+        enable_dispatch=True,
+    )
+    assert result["normalized_gesture_label"] == "like"
+    assert result["mapped_key"] == "up"
+    assert result.get("would_emit") is True
+
+
 def test_dispatch_disabled_without_enable_flag() -> None:
     result = dispatch_key_action(
-        "Fist",
+        "fist",
         DEFAULT_KEYMAP,
         dry_run=False,
         enable_dispatch=False,
@@ -128,8 +153,9 @@ def test_dispatch_disabled_without_enable_flag() -> None:
 
 def test_load_keymap_from_runtime_config(runtime_config: dict) -> None:
     keymap = load_keymap(runtime_config=runtime_config)
-    assert keymap["Palm"] == "space"
-    assert keymap["Peace"] == "down"
+    assert keymap["palm"] == "space"
+    assert keymap["like"] == "up"
+    assert keymap["peace"] == "down"
 
 
 def test_telemetry_summary_p95() -> None:

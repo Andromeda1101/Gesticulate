@@ -207,7 +207,6 @@ def test_ood_eval_protocols() -> None:
     assert protocols["masked_unknown"]["ood"]["n_unknown_predictions"] == 1
     assert protocols["masked_shared_argmax"]["available"] is True
 
-
 def test_compute_ood_drop() -> None:
     drop = compute_ood_drop({"accuracy": 0.9}, {"accuracy": 0.7})
     assert drop["absolute_accuracy_drop"] == pytest.approx(0.2)

@@ -209,10 +209,6 @@ def load_feature_matrix(
         raise ValueError(f"Unsupported feature matrix format: {file_path.suffix}")
 
     records = _deserialize_from_storage(df.to_dict(orient="records"))
-    for record in records:
-        inline = record.get("vector_inline")
-        if isinstance(inline, np.ndarray):
-            record["vector_inline"] = inline.tolist()
 
     if exclude_invalid and records:
         family = str(records[0].get("feature_family", ""))
@@ -309,12 +305,7 @@ _MATRIX_BATCH_COLUMNS = (
 
 
 def _dataframe_batch_to_records(df: pd.DataFrame) -> list[dict[str, Any]]:
-    records = _deserialize_from_storage(df.to_dict(orient="records"))
-    for record in records:
-        inline = record.get("vector_inline")
-        if isinstance(inline, np.ndarray):
-            record["vector_inline"] = inline.tolist()
-    return records
+    return _deserialize_from_storage(df.to_dict(orient="records"))
 
 
 def _should_filter_invalid_rows(records: list[dict[str, Any]]) -> bool:

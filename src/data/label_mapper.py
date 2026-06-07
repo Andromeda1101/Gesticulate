@@ -1,4 +1,4 @@
-"""Convert dataset-native labels to a shared canonical gesture vocabulary."""
+"""Convert dataset-native labels to HaGRID-native gesture names."""
 
 from __future__ import annotations
 
@@ -7,65 +7,50 @@ import re
 from collections import Counter
 from typing import Any
 
-# Canonical gesture names (10-class shared vocabulary)
-CANONICAL_GESTURE_LABELS: tuple[str, ...] = (
-    "Palm",
-    "L",
-    "Fist",
-    "Fist_Moved",
-    "Thumb",
-    "Index",
-    "OK",
-    "Palm_Moved",
-    "C",
-    "Down",
+# HaGRID-native labels observed after mapping LeapGestRecog OOD folders.
+LEAPGEST_MAPPED_HAGRID_LABELS: tuple[str, ...] = (
+    "stop",
+    "palm",
+    "fist",
+    "like",
+    "one",
+    "ok",
+    "grip",
+    "thumb_index",
 )
 
-# Backward-compatible alias
-LEAPGESTRECOG_LABELS = CANONICAL_GESTURE_LABELS
+# Backward-compatible aliases for modules that imported the old canonical names.
+CANONICAL_GESTURE_LABELS = LEAPGEST_MAPPED_HAGRID_LABELS
+LEAPGESTRECOG_LABELS = LEAPGEST_MAPPED_HAGRID_LABELS
 
-# Native folder / alias keys -> canonical names (LeapGestRecog)
-_LEAPGEST_TO_CANONICAL: dict[str, str] = {
-    "01_palm": "Palm",
-    "palm": "Palm",
-    "02_l": "L",
-    "l": "L",
-    "l_shape": "L",
-    "03_fist": "Fist",
-    "fist": "Fist",
-    "04_fist_moved": "Fist_Moved",
-    "fist_moved": "Fist_Moved",
-    "05_thumb": "Thumb",
-    "thumb": "Thumb",
-    "thumb_up": "Thumb",
-    "thumbup": "Thumb",
-    "06_index": "Index",
-    "index": "Index",
-    "07_ok": "OK",
-    "ok": "OK",
-    "08_palm_moved": "Palm_Moved",
-    "palm_moved": "Palm_Moved",
-    "09_c": "C",
-    "c": "C",
-    "10_down": "Down",
-    "down": "Down",
-}
-
-# HaGRID native labels mapped to the closest canonical class where applicable
-_HAGRID_TO_CANONICAL: dict[str, str] = {
-    "palm": "Palm",
-    "fist": "Fist",
-    "like": "Thumb",
-    "ok": "OK",
-    "one": "Index",
-    "rock": "C",
-    "two_up": "Thumb",
-    "two_up_inverted": "Thumb",
+# LeapGestRecog folder / alias keys -> HaGRID training labels.
+_LEAPGEST_TO_HAGRID: dict[str, str] = {
+    "01_palm": "stop",
+    "02_l": "thumb_index",
+    "l": "thumb_index",
+    "l_shape": "thumb_index",
+    "03_fist": "fist",
+    "fist": "fist",
+    "04_fist_moved": "fist",
+    "fist_moved": "fist",
+    "05_thumb": "like",
+    "thumb": "like",
+    "thumb_up": "like",
+    "thumbup": "like",
+    "06_index": "one",
+    "index": "one",
+    "07_ok": "ok",
+    "ok": "ok",
+    "08_palm_moved": "palm",
+    "palm_moved": "palm",
+    "09_c": "grip",
+    "c": "grip",
+    "10_down": "palm",
 }
 
 _DATASET_ALIASES: dict[str, dict[str, str]] = {
-    "leapgestrecog": dict(_LEAPGEST_TO_CANONICAL),
-    "hagrid_subset": dict(_HAGRID_TO_CANONICAL),
+    "leapgestrecog": dict(_LEAPGEST_TO_HAGRID),
+    "hagrid_subset": {},
 }
 
 
@@ -74,10 +59,8 @@ def _normalize_key(raw_label: str) -> str:
 
 
 def _format_unmapped_label(raw_label: str) -> str:
-    """Normalize labels with no explicit alias to a stable Title_Case form."""
-    key = _normalize_key(raw_label)
-    parts = key.split("_")
-    return "_".join(p.capitalize() for p in parts if p)
+    """Normalize labels with no explicit alias to a stable lowercase form."""
+    return _normalize_key(raw_label)
 
 
 def normalize_label(
@@ -88,39 +71,37 @@ def normalize_label(
     canonical_labels: list[str] | None = None,
     align_to_canonical: bool = False,
 ) -> str:
-    """Map a raw label string to a canonical gesture label."""
+    """Map a raw label string to a HaGRID-native gesture label."""
     if not raw_label or not str(raw_label).strip():
         raise ValueError("Empty raw label cannot be normalized")
 
     stripped = str(raw_label).strip()
-    canonical_set = set(canonical_labels or [])
+    reference_set = set(canonical_labels or [])
 
-    if canonical_set and stripped in canonical_set:
+    if reference_set and stripped in reference_set:
         return stripped
 
     merged_aliases: dict[str, str] = {}
     if align_to_canonical:
-        merged_aliases.update(_HAGRID_TO_CANONICAL)
-        merged_aliases.update(_LEAPGEST_TO_CANONICAL)
+        merged_aliases.update(_LEAPGEST_TO_HAGRID)
     merged_aliases.update(_DATASET_ALIASES.get(dataset_name, {}))
     if label_aliases:
         for key, value in label_aliases.items():
-            merged_aliases[_normalize_key(key)] = value
+            merged_aliases[_normalize_key(key)] = str(value)
 
     key = _normalize_key(stripped)
     if key in merged_aliases:
         return merged_aliases[key]
 
-    title = _format_unmapped_label(stripped)
-    if canonical_set and title in canonical_set:
-        return title
+    if reference_set and stripped in reference_set:
+        return stripped
 
-    if canonical_set:
-        for canonical in canonical_set:
-            if _normalize_key(canonical) == key:
-                return canonical
+    if reference_set:
+        for reference in reference_set:
+            if _normalize_key(reference) == key:
+                return reference
 
-    return title if align_to_canonical else stripped
+    return _format_unmapped_label(stripped)
 
 
 def apply_label_normalization(
@@ -157,7 +138,7 @@ def normalize_sample_gesture_label(
     align_to_canonical: bool = False,
 ) -> dict[str, Any]:
     """
-    Ensure *gesture_label* on a manifest or feature row uses the canonical vocabulary.
+    Ensure *gesture_label* on a manifest or feature row uses HaGRID-native names.
 
     Uses ``raw_gesture_label`` when present; otherwise infers LeapGestRecog gesture
     folders from ``capture_context.relative_path`` or ``image_path``.
@@ -193,7 +174,7 @@ _LEAPGEST_GESTURE_IN_PATH = re.compile(r"/(\d{2}_[a-z0-9_]+)/", re.IGNORECASE)
 
 def _looks_like_leapgest_gesture_token(token: str) -> bool:
     stripped = token.strip()
-    return bool(_LEAPGEST_GESTURE_TOKEN.match(stripped)) or stripped.lower() in _LEAPGEST_TO_CANONICAL
+    return bool(_LEAPGEST_GESTURE_TOKEN.match(stripped)) or stripped.lower() in _LEAPGEST_TO_HAGRID
 
 
 def _infer_leapgest_gesture_from_paths(sample: dict[str, Any]) -> str | None:

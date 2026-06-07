@@ -216,9 +216,9 @@ Replace `<run_id>` with the UUID printed by `run_robustness_eval.py`. Pick `--mo
 
 The run JSON and `robustness_summary.md` also report restricted OOD protocols:
 
-- Shared-class subset: OOD accuracy only on the 7 classes present in both HaGRID and LeapGestRecog (excludes `L`, `Down`, `Palm_Moved`).
-- Masked unknown: predictions outside the 10-class OOD vocabulary map to `unknown`.
-- Masked shared argmax (requires `--include-proba`): each prediction is the argmax over `predict_proba` restricted to the 7 shared classes.
+- Shared-class subset: OOD accuracy only on HaGRID labels present in both train and OOD feature matrices.
+- Masked unknown: predictions outside the OOD label vocabulary map to `unknown`.
+- Masked shared argmax (requires `--include-proba`): each prediction is the argmax over `predict_proba` restricted to shared HaGRID classes.
 
 Expected outputs:
 
@@ -226,8 +226,8 @@ Expected outputs:
 - `reports/tables/EXP-03_<run_id>_in_domain_predictions.csv` and `*_ood_predictions.csv`
 - `artifacts/metrics/exp03_robustness/EXP-03_<run_id>_predictions.csv` — combined predictions
 - `reports/tables/EXP-03_<run_id>_per_class_drop.csv` and `reports/figures/exp03_per_class_drop.png`
-- `reports/tables/EXP-03_<run_id>_ood_per_class_accuracy.csv` and `reports/figures/EXP-03_<run_id>_ood_per_class_accuracy.png` — OOD 10-class per-class accuracy
-- `reports/tables/EXP-03_<run_id>_ood_confusion.csv` and `reports/figures/EXP-03_<run_id>_ood_confusion.png` — OOD confusion matrix (canonical vocab + `_other_` column for train-only predictions)
+- `reports/tables/EXP-03_<run_id>_ood_per_class_accuracy.csv` and `reports/figures/EXP-03_<run_id>_ood_per_class_accuracy.png` — OOD per-class accuracy (HaGRID labels)
+- `reports/tables/EXP-03_<run_id>_ood_confusion.csv` and `reports/figures/EXP-03_<run_id>_ood_confusion.png` — OOD confusion matrix (HaGRID labels + `_other_` column for train-only predictions)
 - `reports/summaries/robustness_summary.md` — deployment-oriented summary
 - `reports/summaries/exp03_failure_gallery.md` — qualitative OOD error index
 - `reports/tables/exp03_robustness_suite_leaderboard.csv` — batch suite comparison (all feature × model runs)

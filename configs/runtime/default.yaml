@@ -21,9 +21,9 @@ debounce:
   ms_between_actions: 300
 
 gesture_mapping:
-  Palm: space
-  Fist: enter
-  Thumb: up        
+  palm: space
+  fist: enter
+  like: up
   peace: down
 
 monitoring:

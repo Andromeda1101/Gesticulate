@@ -146,7 +146,7 @@ def compute_ood_domain_report(
     map_out_of_vocab_predictions: bool = True,
 ) -> dict[str, Any]:
     """
-    Per-class OOD accuracy and confusion matrix on the LeapGestRecog label vocabulary.
+    Per-class OOD accuracy and confusion matrix on the HaGRID label vocabulary.
 
     Predictions outside *ood_label_vocab* are mapped to ``_other_`` so the matrix
     remains readable when a HaGRID-trained classifier emits train-only class names.
@@ -224,7 +224,7 @@ _UNKNOWN_LABEL = "unknown"
 
 
 def ood_label_vocab_from_schema(schema_validation: dict[str, Any]) -> list[str]:
-    """OOD canonical vocabulary = shared train/OOD labels plus OOD-only classes."""
+    """OOD label vocabulary = shared train/OOD labels plus OOD-only classes."""
     overlap = schema_validation.get("label_overlap", {})
     shared = [str(l) for l in overlap.get("shared", [])]
     test_only = [str(l) for l in overlap.get("test_only", [])]
@@ -301,8 +301,8 @@ def compute_ood_eval_protocols(
 
     Protocols:
     - ``shared_subset``: accuracy only on samples whose true label is in the
-      train/OOD shared vocabulary (e.g. 7 classes, excluding L/Down/Palm_Moved).
-    - ``masked_unknown``: predictions outside the OOD canonical vocabulary are
+      train/OOD shared HaGRID vocabulary.
+    - ``masked_unknown``: predictions outside the OOD label vocabulary are
       mapped to ``unknown`` before scoring.
     - ``masked_shared_argmax``: decisions are forced to the shared label set via
       masked argmax over ``predict_proba`` (requires probabilities).
@@ -359,7 +359,7 @@ def compute_ood_eval_protocols(
     )
     protocols["masked_unknown"] = {
         "description": (
-            "Predictions outside the OOD canonical vocabulary are mapped to "
+            "Predictions outside the OOD label vocabulary are mapped to "
             "'unknown' before accuracy is computed."
         ),
         "ood": unknown_metrics,
