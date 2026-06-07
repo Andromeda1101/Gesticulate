@@ -101,7 +101,7 @@ class RuntimeTelemetry:
     stage_timings: list[dict[str, Any]] = field(default_factory=list)
     _session_start: float = field(default_factory=time.perf_counter, init=False)
     _last_frame_time: float | None = field(default=None, init=False)
-    _last_fps_log_time: float = field(default=time.perf_counter, init=False)
+    _last_fps_log_time: float = field(default_factory=time.perf_counter, init=False)
     _frames_since_log: int = field(default=0, init=False)
 
     def begin_frame(self) -> float:

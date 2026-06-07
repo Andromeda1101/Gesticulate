@@ -138,10 +138,17 @@ def run_runtime_session(session: RuntimeSessionConfig, runtime_cfg: dict[str, An
     )
     session_logger = SessionLogger(session.session_log_path)
 
+    camera_backend = camera_cfg.get("backend", "auto")
+    camera_fallback_backends = camera_cfg.get("fallback_backends")
+    max_consecutive_read_failures = int(camera_cfg.get("max_consecutive_read_failures", 5))
+    max_reopen_attempts = int(camera_cfg.get("max_reopen_attempts", 3))
+
     camera_stream.open_camera(
         session.camera_index,
         frame_width=camera_cfg.get("width"),
         frame_height=camera_cfg.get("height"),
+        backend=camera_backend,
+        fallback_backends=camera_fallback_backends,
     )
 
     window_name = "Gesticulate Runtime"
@@ -150,6 +157,8 @@ def run_runtime_session(session: RuntimeSessionConfig, runtime_cfg: dict[str, An
 
     start_time = time.perf_counter()
     frame_index = 0
+    consecutive_read_failures = 0
+    reopen_attempts = 0
 
     try:
         while True:
@@ -161,8 +170,41 @@ def run_runtime_session(session: RuntimeSessionConfig, runtime_cfg: dict[str, An
             frame_start = telemetry.begin_frame()
             ok, frame = camera_stream.read_frame()
             if not ok or frame is None:
-                logger.warning("Failed to read camera frame; stopping loop")
+                consecutive_read_failures += 1
+                logger.warning(
+                    "Failed to read camera frame (%s/%s consecutive failures, backend=%s)",
+                    consecutive_read_failures,
+                    max_consecutive_read_failures,
+                    camera_stream.get_active_backend(),
+                )
+                if consecutive_read_failures < max_consecutive_read_failures:
+                    time.sleep(0.05)
+                    continue
+
+                if reopen_attempts < max_reopen_attempts:
+                    reopen_attempts += 1
+                    logger.warning(
+                        "Attempting camera reopen %s/%s after repeated read failures",
+                        reopen_attempts,
+                        max_reopen_attempts,
+                    )
+                    try:
+                        camera_stream.reopen_camera()
+                    except RuntimeError as exc:
+                        logger.error("Camera reopen failed: %s", exc)
+                        break
+                    consecutive_read_failures = 0
+                    continue
+
+                logger.error(
+                    "Camera read failures exceeded recovery limits; stopping loop "
+                    "(reopen_attempts=%s, backend=%s)",
+                    reopen_attempts,
+                    camera_stream.get_active_backend(),
+                )
                 break
+
+            consecutive_read_failures = 0
 
             frame = prepare_frame(frame, runtime_cfg)
             feature_record = extract_runtime_features(
@@ -268,6 +310,8 @@ def run_runtime_session(session: RuntimeSessionConfig, runtime_cfg: dict[str, An
             "runtime_config": str(session.runtime_config_path),
             "feature_config": str(session.feature_config_path),
             "camera_index": session.camera_index,
+            "camera_backend": camera_stream.get_active_backend(),
+            "camera_reopen_attempts": reopen_attempts,
             "dry_run": session.dry_run,
             "enable_key_dispatch": session.enable_key_dispatch,
             "feature_family": feature_family,

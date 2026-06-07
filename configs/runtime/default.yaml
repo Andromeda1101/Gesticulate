@@ -3,6 +3,10 @@ camera:
   width: 640
   height: 480
   fps_target: 30
+  backend: auto
+  fallback_backends: [dshow, msmf, default]
+  max_consecutive_read_failures: 5
+  max_reopen_attempts: 3
 
 inference:
   champion_model_path: null

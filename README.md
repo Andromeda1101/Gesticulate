@@ -259,11 +259,7 @@ python scripts/benchmark_runtime.py \
 Live keyboard control after validating dry-run behavior (explicit opt-in):
 
 ```bash
-python scripts/run_realtime_demo.py \
-  --model artifacts/models/EXP-01_svm_hybrid.joblib \
-  --runtime-config configs/runtime/default.yaml \
-  --camera-index 0 \
-  --enable-key-dispatch
+python scripts/run_realtime_demo.py --model artifacts/models/EXP-01_cnn_hybrid.pt --runtime-config configs/runtime/default.yaml --camera-index 0 --enable-key-dispatch
 ```
 
 Replace the model path with your Phase 3 champion artifact (e.g. top `EXP-01_*_hybrid` under `artifacts/models/`). Press `q` in the overlay window or `Ctrl+C` to stop safely.
