@@ -23,12 +23,15 @@ debounce:
 gesture_mapping:
   Palm: space
   Fist: enter
-  Thumb_Up: up
-  Peace: down
+  Thumb: up        
+  peace: down
 
 monitoring:
   log_fps_interval_sec: 5
   log_latency: true
+  log_gesture_labels: true
+  # on_change | every_frame
+  log_gesture_mode: on_change
 
 dispatch:
   dry_run: true

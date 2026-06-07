@@ -155,10 +155,14 @@ def run_runtime_session(session: RuntimeSessionConfig, runtime_cfg: dict[str, An
     if session.show_overlay:
         cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
 
+    log_gesture_labels = bool(monitoring_cfg.get("log_gesture_labels", True))
+    log_gesture_every_frame = str(monitoring_cfg.get("log_gesture_mode", "on_change")).lower() == "every_frame"
+
     start_time = time.perf_counter()
     frame_index = 0
     consecutive_read_failures = 0
     reopen_attempts = 0
+    last_logged_stable_label: str | None = None
 
     try:
         while True:
@@ -218,6 +222,24 @@ def run_runtime_session(session: RuntimeSessionConfig, runtime_cfg: dict[str, An
             predict_end = time.perf_counter()
 
             filtered_state = gesture_filter.update_prediction(prediction, predict_end)
+
+            if log_gesture_labels:
+                stable_label = str(filtered_state.get("stable_label", ""))
+                raw_label = str(prediction.get("label", ""))
+                raw_conf = float(prediction.get("confidence", 0.0))
+                avg_conf = float(filtered_state.get("avg_confidence", 0.0))
+                consensus = float(filtered_state.get("consensus_ratio", 0.0))
+                if log_gesture_every_frame or stable_label != last_logged_stable_label:
+                    logger.info(
+                        "Gesture stable=%s raw=%s (conf=%.2f, avg=%.2f, consensus=%.2f)",
+                        stable_label,
+                        raw_label,
+                        raw_conf,
+                        avg_conf,
+                        consensus,
+                    )
+                    last_logged_stable_label = stable_label
+
             action_result: dict[str, Any] = {
                 "emitted": False,
                 "reason": "not_eligible",
@@ -235,6 +257,13 @@ def run_runtime_session(session: RuntimeSessionConfig, runtime_cfg: dict[str, An
                 )
                 if action_result.get("emitted") or action_result.get("would_emit"):
                     gesture_filter.mark_emitted(filtered_state)
+                    if log_gesture_labels:
+                        logger.info(
+                            "Key action %s: %s -> %s",
+                            action_result.get("reason"),
+                            action_result.get("gesture_label"),
+                            action_result.get("mapped_key"),
+                        )
 
             dispatch_end = time.perf_counter()
 
