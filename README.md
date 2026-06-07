@@ -2,7 +2,8 @@
 
 ML-based visual gesture recognition for keyboard control. This repository follows a phased implementation plan documented under `doc/`.
 
-**Primary dataset:** HaGRID subset (in-domain training and evaluation). **OOD dataset:** LeapGestRecog (cross-domain evaluation in EXP-03).
+Primary dataset: HaGRID subset (in-domain training and evaluation). 
+OOD dataset: LeapGestRecog (cross-domain evaluation in EXP-03).
 
 ## Setup
 
@@ -57,7 +58,7 @@ python scripts/export_dataset_report.py \
   --output reports/summaries/hagrid_subset_summary.json
 ```
 
-**Outputs:** `data/interim/hagrid_subset_manifest.parquet`, `data/interim/leapgestrecog_manifest.parquet`, `data/splits/hagrid_subset_train_val_test.json`, `data/splits/hagrid_subset_cv_folds.json`.
+Outputs: `data/interim/hagrid_subset_manifest.parquet`, `data/interim/leapgestrecog_manifest.parquet`, `data/splits/hagrid_subset_train_val_test.json`, `data/splits/hagrid_subset_cv_folds.json`.
 
 ### 2. Feature extraction
 
@@ -172,7 +173,7 @@ Expected outputs:
 
 ### 4. Robustness evaluation (EXP-03)
 
-Train on HaGRID , then evaluate the champion model on in-domain **test** split and LeapGestRecog OOD features without retraining (`configs/experiments/exp03_robustness.yaml`):
+Train on HaGRID , then evaluate the champion model on in-domain test split and LeapGestRecog OOD features without retraining (`configs/experiments/exp03_robustness.yaml`):
 
 ```bash
 # EXP-03 suite: all feature families × models
@@ -213,13 +214,13 @@ python scripts/export_ood_report.py \
 
 Replace `<run_id>` with the UUID printed by `run_robustness_eval.py`. Pick `--model-artifact` from the Phase 3 leaderboard (e.g. top `EXP-01_*_hybrid` under `artifacts/models/`).
 
-The run JSON and `robustness_summary.md` also report **restricted OOD protocols**:
+The run JSON and `robustness_summary.md` also report restricted OOD protocols:
 
-- **Shared-class subset**: OOD accuracy only on the 7 classes present in both HaGRID and LeapGestRecog (excludes `L`, `Down`, `Palm_Moved`).
-- **Masked unknown**: predictions outside the 10-class OOD vocabulary map to `unknown`.
-- **Masked shared argmax** (requires `--include-proba`): each prediction is the argmax over `predict_proba` restricted to the 7 shared classes.
+- Shared-class subset: OOD accuracy only on the 7 classes present in both HaGRID and LeapGestRecog (excludes `L`, `Down`, `Palm_Moved`).
+- Masked unknown: predictions outside the 10-class OOD vocabulary map to `unknown`.
+- Masked shared argmax (requires `--include-proba`): each prediction is the argmax over `predict_proba` restricted to the 7 shared classes.
 
-**Expected outputs:**
+Expected outputs:
 
 - `artifacts/metrics/exp03_robustness/EXP-03_<run_id>.json` — run record with in-domain/OOD metrics and robustness drop
 - `reports/tables/EXP-03_<run_id>_in_domain_predictions.csv` and `*_ood_predictions.csv`
@@ -231,9 +232,48 @@ The run JSON and `robustness_summary.md` also report **restricted OOD protocols*
 - `reports/summaries/exp03_failure_gallery.md` — qualitative OOD error index
 - `reports/tables/exp03_robustness_suite_leaderboard.csv` — batch suite comparison (all feature × model runs)
 
-### 5. Real-time deployment (Phase 5, planned)
+### 5. Real-time deployment (EXP-04)
 
+Run the webcam runtime in safe dry-run mode (no keyboard events):
 
+```bash
+python scripts/run_realtime_demo.py \
+  --model artifacts/models/EXP-01_svm_hybrid.joblib \
+  --runtime-config configs/runtime/default.yaml \
+  --camera-index 0 \
+  --dry-run \
+  --show-overlay
+```
+
+Timed runtime benchmark (latency/FPS report, dry-run by default):
+
+```bash
+python scripts/benchmark_runtime.py \
+  --model artifacts/models/EXP-01_svm_hybrid.joblib \
+  --runtime-config configs/runtime/default.yaml \
+  --duration-seconds 60 \
+  --dry-run \
+  --output artifacts/runtime/runtime_eval_001.json
+```
+
+Live keyboard control after validating dry-run behavior (explicit opt-in):
+
+```bash
+python scripts/run_realtime_demo.py \
+  --model artifacts/models/EXP-01_svm_hybrid.joblib \
+  --runtime-config configs/runtime/default.yaml \
+  --camera-index 0 \
+  --enable-key-dispatch
+```
+
+Replace the model path with your Phase 3 champion artifact (e.g. top `EXP-01_*_hybrid` under `artifacts/models/`). Press `q` in the overlay window or `Ctrl+C` to stop safely.
+
+Expected outputs:
+
+- Live overlay with predicted gesture and confidence (when `--show-overlay` is set)
+- `artifacts/runtime/runtime_eval_<timestamp>.json` — latency/FPS summary
+- `artifacts/runtime/runtime_session_<timestamp>.jsonl` — per-frame event log
+- `artifacts/metrics/exp04_realtime_deployment/EXP-04_<run_id>.json` — EXP-04 metrics record
 
 ## Experiment IDs
 

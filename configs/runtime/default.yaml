@@ -25,3 +25,10 @@ gesture_mapping:
 monitoring:
   log_fps_interval_sec: 5
   log_latency: true
+
+dispatch:
+  dry_run: true
+  enable_key_dispatch: false
+
+features:
+  config: configs/features/default.yaml
