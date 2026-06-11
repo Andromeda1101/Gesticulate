@@ -1,6 +1,7 @@
 # 机器学习大作业 Gesticulate 实验报告
 2023012134 王振宇
 本项目已开源![Github仓库](https://github.com/Andromeda1101/Gesticulate)
+可运行的代码与数据已上传![清华云盘](https://cloud.tsinghua.edu.cn/d/99027022fb664ae489f6/)
 ---
 
 ## 研究背景
