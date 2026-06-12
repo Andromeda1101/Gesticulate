@@ -258,6 +258,245 @@ def export_confusion_matrix_csv(
     return path
 
 
+def export_leaderboard_grouped_bar_figure(
+    df: pd.DataFrame,
+    output_path: str | Path,
+    *,
+    x: str = "algorithm",
+    y: str = "accuracy",
+    hue: str = "feature_family",
+    title: str = "Leaderboard comparison",
+    dpi: int = 120,
+) -> Path:
+    """Grouped bar chart for algorithm × feature-family metrics."""
+    import matplotlib.pyplot as plt
+    import numpy as np
+
+    path = Path(output_path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if df.empty or x not in df.columns or y not in df.columns or hue not in df.columns:
+        path.write_text("", encoding="utf-8")
+        return path
+
+    plot_df = df.copy()
+    plot_df[x] = plot_df[x].astype(str)
+    plot_df[hue] = plot_df[hue].astype(str)
+    categories = sorted(plot_df[x].unique())
+    groups = sorted(plot_df[hue].unique())
+    n_groups = len(groups)
+    width = 0.8 / max(n_groups, 1)
+    palette = ["#4C72B0", "#DD8452", "#55A868", "#C44E52", "#8172B3"]
+
+    fig, ax = plt.subplots(figsize=(max(10.0, len(categories) * 1.1), 6.0))
+    x_pos = np.arange(len(categories))
+    for idx, group in enumerate(groups):
+        subset = plot_df[plot_df[hue] == group].set_index(x)
+        values = [float(subset.loc[cat, y]) if cat in subset.index else 0.0 for cat in categories]
+        offset = (idx - (n_groups - 1) / 2) * width
+        bars = ax.bar(x_pos + offset, values, width, label=group, color=palette[idx % len(palette)])
+        for bar, value in zip(bars, values):
+            if value > 0:
+                ax.text(
+                    bar.get_x() + bar.get_width() / 2,
+                    bar.get_height() + 0.01,
+                    f"{value:.2f}",
+                    ha="center",
+                    va="bottom",
+                    fontsize=7,
+                    rotation=90,
+                )
+
+    ax.set_xticks(x_pos)
+    ax.set_xticklabels(categories, rotation=30, ha="right")
+    ax.set_ylabel(y)
+    ax.set_title(title)
+    ax.set_ylim(0.0, min(1.05, plot_df[y].max() * 1.15 + 0.05))
+    ax.legend(title=hue, bbox_to_anchor=(1.02, 1), loc="upper left")
+    fig.tight_layout()
+    fig.savefig(path, dpi=dpi, bbox_inches="tight")
+    plt.close(fig)
+    return path
+
+
+def export_leaderboard_heatmap_figure(
+    df: pd.DataFrame,
+    output_path: str | Path,
+    *,
+    index: str = "algorithm",
+    columns: str = "feature_family",
+    values: str = "accuracy",
+    title: str = "Accuracy heatmap",
+    dpi: int = 120,
+) -> Path:
+    """Pivot-table heatmap for algorithm × feature-family."""
+    import matplotlib.pyplot as plt
+    import seaborn as sns
+
+    path = Path(output_path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if df.empty:
+        path.write_text("", encoding="utf-8")
+        return path
+
+    pivot = df.pivot_table(index=index, columns=columns, values=values, aggfunc="mean")
+    fig, ax = plt.subplots(figsize=(max(8.0, pivot.shape[1] * 1.5), max(6.0, pivot.shape[0] * 0.5)))
+    sns.heatmap(
+        pivot,
+        annot=True,
+        fmt=".3f",
+        cmap="YlGnBu",
+        vmin=0.0,
+        vmax=1.0,
+        ax=ax,
+        cbar_kws={"label": values},
+    )
+    ax.set_title(title)
+    fig.tight_layout()
+    fig.savefig(path, dpi=dpi)
+    plt.close(fig)
+    return path
+
+
+def export_multi_metric_line_figure(
+    df: pd.DataFrame,
+    output_path: str | Path,
+    *,
+    group_col: str = "algorithm",
+    hue_col: str = "feature_family",
+    metrics: tuple[str, ...] = ("accuracy", "f1_macro", "per_sample_inference_ms"),
+    title: str = "Multi-metric profile",
+    dpi: int = 120,
+) -> Path:
+    """Line chart comparing normalized metric profiles across configurations."""
+    import matplotlib.pyplot as plt
+
+    path = Path(output_path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if df.empty:
+        path.write_text("", encoding="utf-8")
+        return path
+
+    available = [m for m in metrics if m in df.columns]
+    if not available:
+        path.write_text("", encoding="utf-8")
+        return path
+
+    plot_df = df.copy()
+    plot_df["_label"] = (
+        plot_df[group_col].astype(str) + " / " + plot_df[hue_col].astype(str)
+    )
+    # Rank by primary metric (accuracy if present) and keep top-N for readability.
+    sort_key = "accuracy" if "accuracy" in plot_df.columns else available[0]
+    top_n = min(12, len(plot_df))
+    plot_df = plot_df.sort_values(sort_key, ascending=False).head(top_n)
+
+    normalized = plot_df[available].copy()
+    for col in available:
+        col_min = normalized[col].min()
+        col_max = normalized[col].max()
+        if col_max > col_min:
+            if col == "per_sample_inference_ms":
+                normalized[col] = 1.0 - (normalized[col] - col_min) / (col_max - col_min)
+            else:
+                normalized[col] = (normalized[col] - col_min) / (col_max - col_min)
+        else:
+            normalized[col] = 0.5
+
+    fig, ax = plt.subplots(figsize=(10.0, 6.0))
+    x = list(range(len(available)))
+    for idx, row in plot_df.iterrows():
+        label = row["_label"]
+        y_vals = normalized.loc[idx, available].tolist()
+        ax.plot(x, y_vals, marker="o", linewidth=1.5, label=label)
+
+    ax.set_xticks(x)
+    ax.set_xticklabels(available, rotation=20, ha="right")
+    ax.set_ylabel("Normalized score (higher is better)")
+    ax.set_ylim(-0.05, 1.05)
+    ax.set_title(title)
+    ax.legend(bbox_to_anchor=(1.02, 1), loc="upper left", fontsize=8)
+    fig.tight_layout()
+    fig.savefig(path, dpi=dpi, bbox_inches="tight")
+    plt.close(fig)
+    return path
+
+
+def export_robustness_comparison_figure(
+    df: pd.DataFrame,
+    output_path: str | Path,
+    *,
+    group_col: str = "algorithm",
+    hue_col: str = "feature_family",
+    in_domain_col: str = "in_domain_accuracy",
+    ood_col: str = "ood_accuracy",
+    drop_col: str = "absolute_accuracy_drop",
+    title: str = "In-domain vs OOD accuracy",
+    top_n: int = 15,
+    dpi: int = 120,
+) -> Path:
+    """Dual bar chart for in-domain/OOD accuracy with accuracy-drop overlay."""
+    import matplotlib.pyplot as plt
+    import numpy as np
+
+    path = Path(output_path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    required = {in_domain_col, ood_col, drop_col, group_col, hue_col}
+    if df.empty or not required.issubset(df.columns):
+        path.write_text("", encoding="utf-8")
+        return path
+
+    plot_df = df.copy()
+    plot_df["_label"] = (
+        plot_df[group_col].astype(str) + "\n" + plot_df[hue_col].astype(str)
+    )
+    plot_df = plot_df.sort_values(ood_col, ascending=False).head(top_n)
+    labels = plot_df["_label"].tolist()
+    x = np.arange(len(labels))
+    width = 0.35
+
+    fig, ax1 = plt.subplots(figsize=(max(12.0, len(labels) * 0.75), 6.5))
+    ax1.bar(
+        x - width / 2,
+        plot_df[in_domain_col],
+        width,
+        label="in-domain",
+        color="#4C72B0",
+    )
+    ax1.bar(
+        x + width / 2,
+        plot_df[ood_col],
+        width,
+        label="OOD",
+        color="#DD8452",
+    )
+    ax1.set_xticks(x)
+    ax1.set_xticklabels(labels, rotation=45, ha="right", fontsize=8)
+    ax1.set_ylabel("Accuracy")
+    ax1.set_ylim(0.0, 1.05)
+    ax1.set_title(title)
+    ax1.legend(loc="upper right")
+
+    ax2 = ax1.twinx()
+    ax2.plot(
+        x,
+        plot_df[drop_col],
+        color="#C44E52",
+        marker="D",
+        linewidth=1.5,
+        label="absolute drop",
+    )
+    ax2.set_ylabel("Absolute accuracy drop")
+    ax2.set_ylim(0.0, max(0.85, float(plot_df[drop_col].max()) * 1.1))
+    lines1, labels1 = ax1.get_legend_handles_labels()
+    lines2, labels2 = ax2.get_legend_handles_labels()
+    ax1.legend(lines1 + lines2, labels1 + labels2, loc="upper right")
+
+    fig.tight_layout()
+    fig.savefig(path, dpi=dpi, bbox_inches="tight")
+    plt.close(fig)
+    return path
+
+
 def load_run_records(
     metrics_dir: str | Path,
     *,

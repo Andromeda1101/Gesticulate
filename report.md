@@ -433,8 +433,17 @@ python scripts/export_benchmark_report.py \
   --output reports/summaries/benchmark_summary.md
 
 python scripts/plot_confusion_matrix.py \
-  --metrics artifacts/metrics/exp02_feature_ablation/EXP-02_<run_id>.json \
+  --input reports/tables/EXP-02_<run_id>_confusion.csv \
   --output reports/figures/
+
+# 从 leaderboard CSV 生成总览图（分组柱状图 / 热力图 / 多维折线图）
+python scripts/plot_results.py --preset all \
+  --input reports/tables/exp01_exp02_leaderboard.csv
+
+# 或单独指定图表类型
+python scripts/plot_results.py \
+  --input reports/tables/exp01_exp02_leaderboard.csv \
+  --chart grouped_bar --y accuracy --output reports/figures/exp01_exp02_accuracy_grouped_bar.png
 ```
 
 4. 公平性约束（自动 enforced）
@@ -482,6 +491,17 @@ python scripts/plot_confusion_matrix.py \
 | svm | hog_only | 0.3773 | 0.4778 | 0.3773 | 0.8734 | 0.3773 | 0.3773 | 0.3773 | 1102.6826 | 2.4216 | 0.9497 |
 | decision_tree | hog_only | 0.1882 | 0.2104 | 0.1882 | 0.2999 | 0.1882 | 0.1882 | 0.1882 | 260.9365 | 0.0130 | 0.0051 |
 
+**可视化总览**（由 `scripts/plot_results.py --preset all` 从 `reports/tables/exp01_exp02_leaderboard.csv` 生成）：
+
+![EXP-01×EXP-02 分组柱状图：各算法在三类特征下的 validation accuracy](./asserts/experiments/exp01_exp02_accuracy_grouped_bar.png)
+*图 1：横轴为算法，颜色区分特征族。几何类特征（keypoints / hybrid）整体抬高精度平台；HOG-only 组普遍低于 0.63。*
+
+![EXP-01×EXP-02 热力图：algorithm × feature_family accuracy](./asserts/experiments/exp01_exp02_accuracy_heatmap.png)
+*图 2：深色格为高精度组合。第一梯队集中在 hybrid 与 keypoints_only 列；hog_only 列整体偏浅。*
+
+![EXP-01×EXP-02 Top-12 多维折线图（accuracy / F1 / 推理延迟归一化）](./asserts/experiments/exp01_exp02_top12_multi_metric_line.png)
+*图 3：每条折线代表一个算法–特征配置。accuracy 与 F1 高的配置（如 CNN+hybrid、MLP+keypoints）在精度维度领先；KNN hybrid 虽精度尚可，但推理延迟归一化得分明显偏低。*
+
 最好的三个结果的混淆矩阵如下：
 ![CNN+hybrid](./asserts/experiments/EXP-02_cnn_hybrid_confusion.png)
 ![MLP+keypoints_only](./asserts/experiments/EXP-02_mlp_keypoints_only_confusion.png)
@@ -523,6 +543,28 @@ python scripts/plot_confusion_matrix.py \
 - CNN + hybrid：宏观 F1（0.8761）与 accuracy 接近，说明 34 类间较均衡；几何分支有助于区分形态相近的类（如 `thumb_index` vs `one`）。
 - MLP + keypoints_only：precision_macro（0.8856）高于 recall_macro（0.8706），对部分易混类（多指标势手势）更保守，误报较少。
 - LSTM + hybrid：recall_macro（0.8697）略低于 CNN hybrid，HOG block 序列顺序对空间邻域的建模不如 2D 卷积直接，但总体仍处第一梯队。
+
+#### 5. 各模型在当前条件下的表现机制（好/坏原因）
+
+下表按**算法族**归纳：在 HaGRID 子集、统一划分与特征管线前提下，为何某配置表现好或差。解读依据为图 1–3 与上表数值。
+
+| 算法 | 最佳配置 | accuracy | 在该条件下表现好的原因 | 表现差/受限的配置与原因 |
+| --- | --- | --- | --- | --- |
+| **CNN** | hybrid | 0.8729 | `HybridCNNClassifier` 双分支：HOG 块网格卷积捕获局部纹理，几何 MLP 注入 260 维拓扑描述子，互补性强 | keypoints_only（0.7855）：无 HOG 分支时 2D 卷积难以从展平几何向量获益；hog_only（0.5161）：缺几何锚点，纹理裁剪受背景干扰 |
+| **MLP** | keypoints_only | 0.8697 | 全连接层与 260 维几何向量天然匹配，参数量适中、训练稳定（≈8 s） | hybrid（0.8525）：拼接 1764 维 HOG 引入冗余噪声；hog_only（0.6282）：输入空间与手势拓扑脱节 |
+| **LSTM** | hybrid | 0.8683 | 49 个 HOG block 序列 + 几何分支，时序建模补充块间上下文 | hog_only（0.4420）：纯 HOG 序列缺乏绝对尺度与关节角，序列记忆无法弥补语义缺失 |
+| **KNN** | keypoints_only | 0.8520 | 局部距离在归一化几何空间有效；训练极快（<0.01 s） | hybrid（0.8136）：高维混合空间距离度量退化；hog_only（0.6141）：纹理维受裁剪质量影响大；推理慢（hybrid 1.01 ms/样本） |
+| **Random Forest** | keypoints_only | 0.8516 | 260 维几何特征便于轴对齐分裂，类间边界清晰 | hybrid（0.8425）：2024 维特征增大搜索成本（fit 349 s）且泛化未提升；hog_only（0.4243）：高维稀疏纹理难以形成稳定分裂 |
+| **Logistic Regression** | hybrid | 0.8249 | 线性模型可吸收几何+HOG 的线性可分成分 | keypoints_only（0.7905）：纯几何线性边界不足；hog_only（0.5663）：HOG 单独线性不可分 |
+| **Naive Bayes** | hybrid | 0.8222 | 条件独立假设在混合特征上部分成立，训练极快 | hog_only（0.5431）：高维 HOG 违反独立性，似然估计失真 |
+| **Decision Tree** | keypoints_only | 0.7783 | 单棵树可解释地切分几何子空间 | hybrid（0.7724）：深度不足、高维噪声；hog_only（0.1882）：对 HOG 噪声过拟合，几乎失效 |
+| **SVM (RBF)** | hybrid | 0.7724 | 相对最优仍仅中等；RBF 核可拟合部分非线性 | keypoints_only（0.6543）、hog_only（0.3773）：高维下 Gram 矩阵规模大、`gamma=scale` 不适配；训练最慢（638–1102 s），precision_macro 虚高而 accuracy 低 |
+
+**跨模型共性结论**：
+
+1. **特征–归纳偏置匹配**决定上限：深度模型需 hybrid 才发挥非线性优势；树/距离模型在 keypoints_only 上更稳；线性模型介于二者之间。
+2. **HOG-only 是全局短板**：与特征设计（基于关键点包围盒裁剪）和 HaGRID 复杂背景一致，并非某一算法独有。
+3. **精度–效率 Pareto**：域内部署首选 MLP+keypoints（0.8697 @ 0.0108 ms）或 CNN+hybrid（0.8729 @ 0.0188 ms）；需极速训练则 KNN/朴素贝叶斯，但 KNN 推理代价高。
 
 ## 实验 EXP-03
 ### 实验步骤
@@ -619,6 +661,14 @@ python scripts/export_failure_gallery.py \
 
 OOD accuracy 为全类评估；共享类 OOD accuracy 仅统计 HaGRID 与 LeapGestRecog 共有的 7 类手势。
 
+**可视化总览**（由 `scripts/plot_results.py --preset exp03` 从 `reports/tables/exp03_robustness_suite_leaderboard.csv` 生成）：
+
+![EXP-03 域内 vs OOD accuracy 对比（按 OOD 排序 Top-15）](./asserts/experiments/exp03_robustness_comparison.png)
+*图 4：蓝柱为 HaGRID test 域内精度，橙柱为 LeapGestRecog OOD 精度，红线为绝对跌落。域内冠军 CNN+hybrid（0.8611）OOD 仅 0.0850；KNN+hybrid OOD 最高（0.3955）但域内并非最优。*
+
+![EXP-03 OOD accuracy 分组柱状图](./asserts/experiments/exp03_ood_accuracy_grouped_bar.png)
+*图 5：跨域场景下 KNN 与 Logistic Regression 在 hybrid 特征上 OOD 明显优于深度模型；SVM 全系接近失效。*
+
 ### 实验分析
 
 #### 1. 域内高精度与 OOD 鲁棒性呈显著负相关
@@ -653,6 +703,31 @@ EXP-01×EXP-02 的 validation 冠军 CNN + hybrid（0.8729）在 EXP-03 中域�
 #### 5. 对部署的含义
 
 跨数据集实验表明：不能仅凭 HaGRID validation 排行榜选取冠军。若目标场景为普通 RGB 摄像头（与 HaGRID 同域），可选 CNN/MLP + hybrid 或 keypoints；若需一定跨用户/跨设备鲁棒性，应在目标域采集少量样本微调，或优先 KNN + hybrid 等 OOD 相对更稳的配置，并配合运行时置信度阈值（`configs/runtime/default.yaml` 中 `confidence_threshold: 0.6`）与滑窗共识滤波（`smoothing.window_size: 5`）抑制误触发。
+
+#### 6. 各模型跨域条件下的表现机制（好/坏原因）
+
+结合图 4–5 与 OOD 表，按算法解释**为何域内强 ≠ OOD 强**：
+
+| 算法 | OOD 最佳配置 | ood_accuracy | 跨域表现相对好的原因 | 跨域表现差/矛盾配置与原因 |
+| --- | --- | --- | --- | --- |
+| **KNN** | hybrid | 0.3955 | 局部相似度对绝对特征尺度变化较宽容；hybrid 中几何分支提供跨域锚点 | keypoints_only（0.1236）：虽域内 0.8561，但纯几何在 Leap 近红外上检测质量下降，缺少 HOG 纹理补充反而更脆 |
+| **Logistic Regression** | hybrid | 0.3124 | 线性决策边界简单，较少过拟合域内 RGB 背景共现 | keypoints_only（0.1293）：线性边界无法适应 OOD 特征分布偏移 |
+| **MLP** | hybrid | 0.2207 | hybrid 略优于 hog_only，但整体仍低 | keypoints_only（0.1224）：域内冠军级（0.8620）在 OOD 暴跌 0.74，非线性映射放大域特异性 |
+| **LSTM** | hybrid | 0.1490 | 与 MLP 类似，序列+几何略保留结构信息 | keypoints_only（0.0968）：域内 0.8539 → OOD 近 0.10，时序记忆无法泛化到新域 |
+| **CNN** | keypoints_only | 0.1051 | 单分支几何 CNN 过拟合较轻于 hybrid | **hybrid（0.0850）**：域内 0.8611 为全表前列，OOD 倒数——双分支深度模型最强拟合 HaGRID 纹理–背景共现 |
+| **Random Forest** | hog_only | 0.1296 | 树模型在弱特征上反而 OOD 相对较高（绝对值仍低） | keypoints_only（0.0765）、hybrid（0.0777）：域内高精度（0.84+）对应 OOD <0.08，分裂规则绑定域内分布 |
+| **Naive Bayes** | hog_only | 0.1727 | 简单似然模型 OOD 跌落相对温和（保留率 31%） | hybrid（0.1218）：域内尚可但 OOD 仍 <0.13 |
+| **Decision Tree** | hog_only | 0.0702 | 全表 OOD 均极低，无显著优势配置 | 全系 OOD <0.07：单树容量不足以跨域泛化 |
+| **SVM** | hybrid | 0.0460 | 相对自身其它配置略好，绝对值仍不可用 | keypoints_only（0.0029）：RBF 决策面在 OOD 特征空间几乎完全失效 |
+
+**跨域选型启示**（对照 EXP-01×EXP-02 与 EXP-03）：
+
+| 部署场景 | 推荐配置 | 依据 |
+| --- | --- | --- |
+| 同域 RGB 实时控制（EXP-04） | CNN+hybrid 或 MLP+keypoints | 域内 accuracy 最高梯队，推理 <0.02 ms |
+| 零样本跨设备/近红外 | KNN+hybrid | OOD accuracy 0.3955，保留率 48.7%，显著优于深度冠军 |
+| 需可解释 + 适度跨域 | Logistic Regression+hybrid | OOD 0.3124，训练成本低于 KNN 推理 |
+| 不推荐零样本部署 | SVM 全系、Decision Tree | OOD <0.05，跨域无实用价值 |
 
 ## 实验 EXP-04
 ### 实验步骤
