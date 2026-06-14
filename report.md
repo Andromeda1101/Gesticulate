@@ -1,7 +1,11 @@
 # 机器学习大作业 Gesticulate 实验报告
+
+
 2023012134 王振宇
-本项目已开源![Github仓库](https://github.com/Andromeda1101/Gesticulate)
-可运行的代码与数据已上传![清华云盘](https://cloud.tsinghua.edu.cn/d/99027022fb664ae489f6/)
+本项目已开源[Github仓库](https://github.com/Andromeda1101/Gesticulate)
+可运行的代码与数据已上传[清华云盘](https://cloud.tsinghua.edu.cn/d/99027022fb664ae489f6/)
+
+
 ---
 
 ## 研究背景
@@ -461,6 +465,7 @@ python scripts/plot_results.py \
 
 ### 实验结果
 综合实验 1 与实验 2 ，得到完整 算法-特征 表格如下：
+（由于渲染限制只能展示前半部分，全部报告请参考仓库或云盘中的 Markdown 文件）
 | algorithm | feature_family | accuracy | f1_macro | recall_macro | precision_macro | f1_micro | recall_micro | precision_micro | fit_seconds | inference_seconds | per_sample_inference_ms |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | cnn | hybrid | 0.8729 | 0.8761 | 0.8740 | 0.8839 | 0.8729 | 0.8729 | 0.8729 | 8.3713 | 0.0415 | 0.0188 |
@@ -789,7 +794,7 @@ python scripts/run_realtime_demo.py \
 
 ## 实验总结
 
-1. 特征：腕部归一化几何描述子（260 维）是 HaGRID 域内分类的主要判别信号；单独 HOG 在 34 类任务上不足，但与几何拼接后可显著提升 CNN/LSTM 结构的表现。
+1. 特征：腕部归一化的几何描述子（260 维）是 HaGRID 域内分类的主要判别信号；单独 HOG 在 34 类任务上不足，但与几何拼接后可显著提升 CNN/LSTM 结构的表现。
 2. 算法：域内 validation 前三名 CNN/MLP/LSTM + hybrid 或 keypoints（accuracy ≈ 0.87）；树模型与 SVM 训练代价高、精度或 OOD 表现不占优；Logistic Regression 适合极低延迟基线。
 3. 跨域：LeapGestRecog 零样本 OOD accuracy 最高仅约 40%（KNN + hybrid），深度冠军模型 OOD 可跌至 10% 以下，揭示 RGB 真实场景与近红外标准采集之间的域鸿沟，以及标签映射与 MediaPipe 跨模态检测的叠加误差。
 4. 部署：实时系统采用与离线一致的特征管线；综合精度、延迟与特征计算成本，MLP + keypoints_only 为域内实时部署的推荐配置，辅以置信度阈值与滑窗滤波保证操控稳定性。
